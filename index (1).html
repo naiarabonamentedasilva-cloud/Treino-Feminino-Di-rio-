@@ -1,0 +1,2487 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AuraFit — Treino Feminino Inteligente</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        plum: {
+                            950: '#160D18',
+                            900: '#241427',
+                            800: '#361E3B',
+                            700: '#4E2A54',
+                        },
+                        coral: {
+                            50: '#FFF5F5',
+                            100: '#FFE3E3',
+                            400: '#FB7185',
+                            500: '#F43F5E',
+                            600: '#E11D48',
+                        },
+                        terracotta: {
+                            400: '#F28482',
+                            500: '#E56B6F',
+                            600: '#D65A5E',
+                        },
+                        lilac: {
+                            50: '#FAF5FF',
+                            100: '#F3E8FF',
+                            500: '#A855F7',
+                            600: '#9333EA',
+                        }
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 30px -10px rgba(36, 20, 39, 0.08)',
+                        'glow': '0 8px 25px -5px rgba(244, 63, 94, 0.35)',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-[#FDF8F9] text-plum-900 font-sans antialiased selection:bg-coral-500 selection:text-white pb-24 md:pb-10">
+
+    <!-- Notificação / Banner In-App para Alertas e Feedbacks -->
+    <div id="inAppToastContainer" class="fixed top-4 right-4 left-4 md:left-auto md:w-96 z-50 flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- Modal de Alerta de Horário de Treino -->
+    <div id="alarmModal" class="hidden fixed inset-0 z-50 bg-plum-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl border border-coral-100 text-center transform transition-all">
+            <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-coral-500 to-lilac-500 text-white flex items-center justify-center mx-auto mb-5 shadow-glow animate-bounce">
+                <i class="ph-fill ph-barbell text-4xl"></i>
+            </div>
+            <span class="inline-block px-3 py-1 rounded-full bg-coral-50 text-coral-600 text-xs font-bold uppercase tracking-wider mb-2">Hora do Seu Treino!</span>
+            <h3 id="alarmModalTitle" class="font-display text-2xl font-extrabold text-plum-900 mb-2">Bora treinar, musa!</h3>
+            <p id="alarmModalDesc" class="text-plum-800/70 text-sm mb-6 leading-relaxed">Seu horário programado chegou. Prepare sua garrafa de água e vamos conquistar seus objetivos hoje!</p>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button onclick="dismissAlarmAndGoToWorkout()" class="flex-1 py-3.5 px-5 rounded-2xl bg-gradient-to-r from-coral-500 to-terracotta-500 text-white font-semibold shadow-glow hover:opacity-95 active:scale-[0.98] transition flex items-center justify-center gap-2">
+                    <i class="ph-bold ph-play"></i> Iniciar Treino
+                </button>
+                <button onclick="closeAlarmModal()" class="py-3.5 px-5 rounded-2xl bg-plum-900/5 text-plum-900 font-semibold hover:bg-plum-900/10 transition">
+                    Lembrar Depois
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- MODAL AMPLIADO DO APARELHO & EXECUÇÃO FEMININA            -->
+    <!-- ========================================================= -->
+    <div id="machineDetailModal" class="hidden fixed inset-0 z-50 bg-plum-950/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl border border-coral-100 relative my-auto max-h-[92vh] overflow-y-auto">
+            <!-- Fechar -->
+            <button onclick="closeMachineDetailModal()" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-plum-900/5 hover:bg-plum-900/10 text-plum-900 flex items-center justify-center transition z-10" aria-label="Fechar">
+                <i class="ph-bold ph-x text-lg"></i>
+            </button>
+
+            <!-- Badge Superior -->
+            <div class="flex flex-wrap items-center gap-2 mb-2 pr-10">
+                <span id="modalMachineTag" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-coral-50 text-coral-600 text-xs font-extrabold uppercase tracking-wider">
+                    <i class="ph-fill ph-barbell"></i> Aparelho
+                </span>
+                <span id="modalMuscleTag" class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-lilac-50 text-lilac-600 text-xs font-bold">
+                    Músculo Alvo
+                </span>
+            </div>
+
+            <h3 id="modalExerciseName" class="font-display text-xl sm:text-2xl font-extrabold text-plum-900 mb-4">
+                Nome do Exercício
+            </h3>
+
+            <!-- Palco Visual Ampliado do Aparelho SVG -->
+            <div class="rounded-3xl bg-gradient-to-br from-[#FFF5F7] via-[#FDF8F9] to-lilac-50/70 border-2 border-coral-100 p-4 sm:p-6 flex flex-col items-center justify-center mb-5 relative overflow-hidden">
+                <div class="w-full max-w-[320px] h-48 sm:h-56 flex items-center justify-center" id="modalMachineSvgStage">
+                    <!-- SVG ampliado injetado via JS -->
+                </div>
+                <div class="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-coral-100 text-[11px] font-bold text-plum-800 shadow-sm">
+                    <i class="ph-fill ph-eye text-coral-500"></i> Identificação Visual do Equipamento na Academia
+                </div>
+            </div>
+
+            <!-- Cards de Ajuste e Postura -->
+            <div class="space-y-3 mb-6">
+                <div class="p-4 rounded-2xl bg-[#FDF8F9] border border-coral-100">
+                    <div class="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-coral-600 mb-1">
+                        <i class="ph-fill ph-sliders-horizontal text-base"></i> Ajuste Ideal do Aparelho / Banco
+                    </div>
+                    <p id="modalMachineSetup" class="text-xs sm:text-sm text-plum-900/85 leading-relaxed">
+                        Instrução de regulagem do equipamento.
+                    </p>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-lilac-50/60 border border-lilac-100">
+                    <div class="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-lilac-600 mb-1">
+                        <i class="ph-fill ph-sparkle text-base"></i> Execução & Postura Feminina
+                    </div>
+                    <p id="modalMachineTip" class="text-xs sm:text-sm text-plum-900/85 leading-relaxed">
+                        Dica de execução e biomecânica.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Rodapé do Modal -->
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button id="modalStartRestBtn" onclick="closeMachineDetailModal()" class="flex-1 py-3.5 px-5 rounded-2xl bg-gradient-to-r from-coral-500 to-terracotta-500 text-white font-display font-bold text-sm shadow-glow hover:opacity-95 transition flex items-center justify-center gap-2">
+                    <i class="ph-bold ph-timer"></i> Iniciar Descanso
+                </button>
+                <button onclick="closeMachineDetailModal()" class="py-3.5 px-5 rounded-2xl bg-plum-900/5 hover:bg-plum-900/10 text-plum-900 font-bold text-sm transition">
+                    Voltar ao Treino
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- MODAL DE PLANOS & CHECKOUT MERCADO PAGO (MENSAL/VITALÍCIO)-->
+    <!-- ========================================================= -->
+    <div id="paywallModal" class="hidden fixed inset-0 z-50 bg-plum-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-8 shadow-2xl border border-coral-100 relative my-auto max-h-[92vh] overflow-y-auto">
+            <!-- Botão Fechar -->
+            <button onclick="closePaywallModal()" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-plum-900/5 hover:bg-plum-900/10 text-plum-900 flex items-center justify-center transition" aria-label="Fechar">
+                <i class="ph-bold ph-x text-lg"></i>
+            </button>
+
+            <!-- Cabeçalho da Oferta -->
+            <div class="text-center max-w-lg mx-auto mb-6">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-100 to-coral-100 text-coral-600 text-xs font-extrabold uppercase tracking-wider mb-2">
+                    <i class="ph-fill ph-crown"></i> AuraFit PRO
+                </span>
+                <h3 id="paywallTitle" class="font-display text-2xl sm:text-3xl font-extrabold text-plum-900 tracking-tight">
+                    Desbloqueie sua ficha completa e resultados reais
+                </h3>
+                <p id="paywallSubtitle" class="text-plum-800/70 text-xs sm:text-sm mt-1.5">
+                    No plano gratuito você tem acesso ao Treino A e 1 alerta diário. Assine para liberar os treinos B a F, variação inteligente e lembretes ilimitados.
+                </p>
+            </div>
+
+            <!-- Benefícios Inclusos -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-[#FDF8F9] p-4 rounded-2xl border border-coral-100 mb-6 text-xs font-semibold text-plum-900">
+                <div class="flex items-center gap-2">
+                    <i class="ph-fill ph-check-circle text-emerald-500 text-base shrink-0"></i>
+                    <span>Todos os treinos (A, B, C, D, E e F)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="ph-fill ph-check-circle text-emerald-500 text-base shrink-0"></i>
+                    <span>Ilustrações e ajustes de todos aparelhos</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="ph-fill ph-check-circle text-emerald-500 text-base shrink-0"></i>
+                    <span>Alertas diários em todos os dias</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="ph-fill ph-check-circle text-emerald-500 text-base shrink-0"></i>
+                    <span>Sincronização com Agenda (.ics)</span>
+                </div>
+            </div>
+
+            <!-- Seleção de Planos: Mensal vs Vitalício -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-6">
+                <!-- Plano Mensal -->
+                <div onclick="selectCheckoutPlan('monthly')" id="planCard-monthly" class="cursor-pointer rounded-2xl p-4 sm:p-5 border-2 border-coral-100 bg-white hover:border-coral-300 transition relative">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-display font-bold text-plum-900 text-base">Plano Mensal</span>
+                        <span id="radio-monthly" class="w-5 h-5 rounded-full border-2 border-coral-300 flex items-center justify-center"></span>
+                    </div>
+                    <div class="flex items-baseline gap-1 my-2">
+                        <span class="text-xs font-bold text-plum-800/60">R$</span>
+                        <span id="priceDisplay-monthly" class="font-display text-3xl font-extrabold text-plum-900">19,90</span>
+                        <span class="text-xs font-semibold text-plum-800/60">/mês</span>
+                    </div>
+                    <p class="text-[11px] text-plum-800/65">Acesso total renovado mensalmente. Cancele quando quiser com 1 clique.</p>
+                </div>
+
+                <!-- Plano Vitalício -->
+                <div onclick="selectCheckoutPlan('lifetime')" id="planCard-lifetime" class="cursor-pointer rounded-2xl p-4 sm:p-5 border-2 border-coral-500 bg-coral-50/40 transition relative shadow-sm">
+                    <span class="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-coral-500 to-lilac-600 text-white text-[10px] font-extrabold uppercase tracking-wider shadow-sm">
+                        Mais Escolhido
+                    </span>
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-display font-bold text-plum-900 text-base">Acesso Vitalício</span>
+                        <span id="radio-lifetime" class="w-5 h-5 rounded-full border-2 border-coral-500 bg-coral-500 text-white flex items-center justify-center">
+                            <i class="ph-bold ph-check text-[10px]"></i>
+                        </span>
+                    </div>
+                    <div class="flex items-baseline gap-1 my-2">
+                        <span class="text-xs font-bold text-plum-800/60">R$</span>
+                        <span id="priceDisplay-lifetime" class="font-display text-3xl font-extrabold text-coral-600">199,90</span>
+                        <span class="text-xs font-semibold text-plum-800/60">único</span>
+                    </div>
+                    <p class="text-[11px] text-plum-800/75 font-medium">Pague uma única vez e tenha acesso ilimitado para sempre, sem mensalidades!</p>
+                </div>
+            </div>
+
+            <!-- Checkout Oficial Mercado Pago -->
+            <div class="border-t border-coral-100 pt-5 space-y-4">
+                <div class="bg-[#FDF8F9] rounded-2xl p-4 border border-coral-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-xl bg-sky-500/15 text-sky-600 flex items-center justify-center shrink-0">
+                            <i class="ph-fill ph-handshake text-2xl"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-extrabold text-plum-900 flex items-center gap-1.5">
+                                Checkout Seguro via Mercado Pago
+                                <i class="ph-fill ph-seal-check text-sky-500 text-sm"></i>
+                            </div>
+                            <p class="text-[11px] text-plum-800/70">Pague com <strong>PIX</strong>, <strong>Cartão de Crédito</strong> ou <strong>Boleto</strong> no ambiente oficial.</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="copyPaymentLink()" class="px-3 py-2 rounded-xl bg-white hover:bg-coral-50 border border-coral-200 text-plum-900 font-bold text-xs flex items-center justify-center gap-1.5 shrink-0 transition">
+                        <i class="ph-bold ph-link"></i> Copiar Link
+                    </button>
+                </div>
+
+                <!-- Botão Principal Mercado Pago -->
+                <a id="mercadoPagoCheckoutLink" href="https://mpago.la/2uTFpS7" target="_blank" rel="noopener noreferrer" onclick="handleMercadoPagoRedirect()" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-coral-500 via-terracotta-500 to-lilac-600 text-white font-display font-extrabold text-base shadow-glow hover:opacity-95 active:scale-[0.99] transition flex items-center justify-center gap-2 text-center">
+                    <i class="ph-fill ph-crown text-xl text-amber-200"></i>
+                    <span id="checkoutSubmitBtnText">Pagar no Mercado Pago — Vitalício R$ 199,90</span>
+                    <i class="ph-bold ph-arrow-square-out text-lg"></i>
+                </a>
+
+                <!-- Área de Confirmação / Liberação Pós-Pagamento -->
+                <div class="rounded-2xl bg-emerald-50/70 border border-emerald-200 p-4 text-center space-y-2.5">
+                    <p class="text-xs text-plum-900 font-semibold">
+                        Já concluiu seu pagamento no Mercado Pago? Libere seu acesso agora mesmo:
+                    </p>
+                    <button type="button" onclick="confirmMercadoPagoActivation()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-bold text-xs sm:text-sm shadow-sm transition inline-flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-check-circle text-base"></i>
+                        <span id="activateAfterPayText">Já paguei! Liberar Acesso Vitalício Agora</span>
+                    </button>
+                </div>
+
+                <p class="text-center text-[11px] text-plum-800/55 flex items-center justify-center gap-1">
+                    <i class="ph-fill ph-shield-check text-emerald-500"></i> Pagamento processado pelo Mercado Pago • Liberação imediata
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cabeçalho Superior -->
+    <header class="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-coral-100/80">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 md:h-20 flex items-center justify-between">
+            <!-- Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-coral-500 via-terracotta-500 to-plum-800 flex items-center justify-center text-white shadow-md">
+                    <i class="ph-fill ph-sparkle text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-display font-extrabold text-xl tracking-tight text-plum-900 leading-none">Aura<span class="text-coral-500">Fit</span></h1>
+                    <p class="text-[11px] font-medium text-plum-800/60 mt-0.5">Treino Feminino Inteligente</p>
+                </div>
+            </div>
+
+            <!-- Navegação Desktop -->
+            <nav class="hidden md:flex items-center gap-1.5 bg-[#FDF8F9] p-1.5 rounded-2xl border border-coral-100">
+                <button onclick="switchTab('workout')" data-tab="workout" class="nav-btn px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2">
+                    <i class="ph-bold ph-barbell"></i> Meu Treino
+                </button>
+                <button onclick="switchTab('alerts')" data-tab="alerts" class="nav-btn px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2">
+                    <i class="ph-bold ph-bell-ringing"></i> Alertas Diários
+                </button>
+                <button onclick="switchTab('progress')" data-tab="progress" class="nav-btn px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2">
+                    <i class="ph-bold ph-chart-line-up"></i> Saúde & Evolução
+                </button>
+                <button onclick="switchTab('profile')" data-tab="profile" class="nav-btn px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2">
+                    <i class="ph-bold ph-user-circle"></i> Meu Perfil
+                </button>
+            </nav>
+
+            <!-- Status Rápido / Plano & Água -->
+            <div class="flex items-center gap-2">
+                <!-- Botão Seja PRO -->
+                <button id="headerUpgradeBtn" onclick="openPaywallModal('top_cta')" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-coral-500 to-lilac-600 text-white font-display font-bold text-xs shadow-sm hover:opacity-95 active:scale-95 transition flex items-center gap-1.5">
+                    <i class="ph-fill ph-crown text-amber-200"></i> <span>Seja PRO</span>
+                </button>
+
+                <!-- Selo Assinante Ativo -->
+                <div id="headerProBadge" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-100 to-coral-100 border border-amber-300/70 text-plum-900 font-display font-extrabold text-xs">
+                    <i class="ph-fill ph-crown text-amber-500 text-sm"></i>
+                    <span id="headerProLabel">AuraFit PRO</span>
+                </div>
+
+                <button onclick="switchTab('alerts')" class="relative p-2.5 rounded-xl bg-coral-50 text-coral-600 hover:bg-coral-100 transition md:hidden" aria-label="Alertas">
+                    <i class="ph-bold ph-bell-ringing text-xl"></i>
+                    <span id="mobileAlertDot" class="hidden absolute top-2 right-2 w-2 h-2 rounded-full bg-coral-500"></span>
+                </button>
+                <div id="headerUserBadge" class="hidden sm:flex items-center gap-2.5 pl-3 pr-4 py-1.5 rounded-full bg-plum-900 text-white text-xs font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="headerUserName">Atleta</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Banner Discreto do Plano Gratuito -->
+    <div id="freeTierBanner" class="bg-gradient-to-r from-plum-900 via-plum-800 to-plum-900 text-white border-b border-white/10">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2 text-center sm:text-left">
+                <span class="px-2 py-0.5 rounded-md bg-white/15 text-coral-300 font-extrabold uppercase tracking-wider text-[10px]">Plano Gratuito</span>
+                <span class="text-white/90">Você está usando a versão inicial gratuita (<strong>Treino A com aparelhos ilustrados</strong> + <strong>1 alerta diário</strong>).</span>
+            </div>
+            <button onclick="openPaywallModal('banner')" class="text-amber-300 hover:text-amber-200 font-extrabold underline underline-offset-2 flex items-center gap-1 shrink-0">
+                Desbloquear ficha completa (Mensal ou Vitalício) <i class="ph-bold ph-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 pt-6 md:pt-8">
+
+        <!-- ========================================================= -->
+        <!-- SEÇÃO 1: ONBOARDING / PERFIL PERSONALIZADO                -->
+        <!-- ========================================================= -->
+        <section id="tab-profile" class="tab-section">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 md:p-10 shadow-soft border border-coral-100/70">
+                <div class="max-w-2xl mb-8">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-lilac-50 text-lilac-600 text-xs font-bold uppercase tracking-wider mb-3">
+                        <i class="ph-fill ph-magic-wand"></i> Personalização Inteligente
+                    </span>
+                    <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-plum-900 tracking-tight">
+                        Monte seu plano de treino sob medida
+                    </h2>
+                    <p class="text-plum-800/70 text-sm sm:text-base mt-2">
+                        Preencha seus dados corporais e rotina para que nosso algoritmo crie a divisão de treino ideal com a ilustração de cada aparelho da academia.
+                    </p>
+                </div>
+
+                <form id="profileForm" onsubmit="handleProfileSubmit(event)" class="space-y-6">
+                    <!-- Dados Básicos -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="sm:col-span-2 lg:col-span-1">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-plum-800/70 mb-2">Seu Nome</label>
+                            <input type="text" id="inputName" required placeholder="Ex: Camila" class="w-full px-4 py-3.5 rounded-2xl bg-[#FDF8F9] border border-coral-100 focus:border-coral-500 focus:bg-white focus:outline-none text-plum-900 font-medium transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-plum-800/70 mb-2">Idade (anos)</label>
+                            <input type="number" id="inputAge" required min="14" max="90" placeholder="Ex: 28" class="w-full px-4 py-3.5 rounded-2xl bg-[#FDF8F9] border border-coral-100 focus:border-coral-500 focus:bg-white focus:outline-none text-plum-900 font-medium transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-plum-800/70 mb-2">Peso (kg)</label>
+                            <input type="number" id="inputWeight" required step="0.1" min="30" max="250" placeholder="Ex: 62.5" class="w-full px-4 py-3.5 rounded-2xl bg-[#FDF8F9] border border-coral-100 focus:border-coral-500 focus:bg-white focus:outline-none text-plum-900 font-medium transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-plum-800/70 mb-2">Altura (cm)</label>
+                            <input type="number" id="inputHeight" required min="120" max="220" placeholder="Ex: 165" class="w-full px-4 py-3.5 rounded-2xl bg-[#FDF8F9] border border-coral-100 focus:border-coral-500 focus:bg-white focus:outline-none text-plum-900 font-medium transition">
+                        </div>
+                    </div>
+
+                    <!-- Objetivo Principal -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-plum-800/70 mb-3">Qual é o seu objetivo principal?</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="goalOptions">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="goal" value="glutes" class="peer sr-only" checked>
+                                <div class="p-4 rounded-2xl border-2 border-coral-100 bg-[#FDF8F9] peer-checked:border-coral-500 peer-checked:bg-coral-50/60 transition flex items-start gap-3.5">
+                                    <div class="w-10 h-10 rounded-xl bg-coral-500/10 text-coral-600 flex items-center justify-center shrink-0 mt-0.5">
+                                        <i class="ph-fill ph-fire text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-plum-900 text-sm">Foco em Glúteos e Inferiores</div>
+                                        <div class="text-xs text-plum-800/65 mt-0.5">Ênfase em glúteo máximo/médio, posteriores e quadríceps com harmonia superior.</div>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="goal" value="hypertrophy" class="peer sr-only">
+                                <div class="p-4 rounded-2xl border-2 border-coral-100 bg-[#FDF8F9] peer-checked:border-coral-500 peer-checked:bg-coral-50/60 transition flex items-start gap-3.5">
+                                    <div class="w-10 h-10 rounded-xl bg-lilac-500/10 text-lilac-600 flex items-center justify-center shrink-0 mt-0.5">
+                                        <i class="ph-fill ph-barbell text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-plum-900 text-sm">Hipertrofia e Ganho de Massa</div>
+                                        <div class="text-xs text-plum-800/65 mt-0.5">Construção muscular equilibrada, força progressiva e curvas definidas.</div>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="goal" value="weightloss" class="peer sr-only">
+                                <div class="p-4 rounded-2xl border-2 border-coral-100 bg-[#FDF8F9] peer-checked:border-coral-500 peer-checked:bg-coral-50/60 transition flex items-start gap-3.5">
+                                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0 mt-0.5">
+                                        <i class="ph-fill ph-lightning text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-plum-900 text-sm">Emagrecimento e Definição</div>
+                                        <div class="text-xs text-plum-800/65 mt-0.5">Treinos metabólicos, descansos curtos e alto gasto calórico preservando massa magra.</div>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="goal" value="health" class="peer sr-only">
+                                <div class="p-4 rounded-2xl border-2 border-coral-100 bg-[#FDF8F9] peer-checked:border-coral-500 peer-checked:bg-coral-50/60 transition flex items-start gap-3.5">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                                        <i class="ph-fill ph-heart-half text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-plum-900 text-sm">Condicionamento e Saúde</div>
+                                        <div class="text-xs text-plum-800/65 mt-0.5">Mais disposição diária, postura firme, fortalecimento articular e bem-estar.</div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Experiência, Dias e Tempo -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-plum-800/70 mb-2">Nível de Experiência</label>
+                            <select id="inputLevel" class="w-full px-4 py-3.5 rounded-2xl bg-[#FDF8F9] border border-coral-100 focus:border-coral-500 focus:bg-white focus:outline-none text-plum-900 font-medium transition">
+                                <option value="beginner">Iniciante (0 a 6 meses)</option>
+                                <option value="intermediate" selected>Intermediária (6m a 2 anos)</option>
+                                <option value="advanced">Avançada (+2 anos)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-plum-800/70 mb-2">Dias na Semana</label>
+                            <select id="inputDays" class="w-full px-4 py-3.5 rounded-2xl bg-[#FDF8F9] border border-coral-100 focus:border-coral-500 focus:bg-white focus:outline-none text-plum-900 font-medium transition">
+                                <option value="2">2 dias por semana</option>
+                                <option value="3">3 dias por semana</option>
+                                <option value="4" selected>4 dias por semana</option>
+                                <option value="5">5 dias por semana</option>
+                                <option value="6">6 dias por semana</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-plum-800/70 mb-2">Tempo por Sessão</label>
+                            <select id="inputDuration" class="w-full px-4 py-3.5 rounded-2xl bg-[#FDF8F9] border border-coral-100 focus:border-coral-500 focus:bg-white focus:outline-none text-plum-900 font-medium transition">
+                                <option value="30">30 minutos (Express)</option>
+                                <option value="45">45 minutos (Dinâmico)</option>
+                                <option value="60" selected>60 minutos (Completo)</option>
+                                <option value="90">90 minutos (Intenso)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Rotina Diária -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-plum-800/70 mb-2">Como é a sua rotina fora da academia?</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="activity" value="sedentary" class="peer sr-only" checked>
+                                <div class="p-3.5 rounded-2xl border-2 border-coral-100 bg-[#FDF8F9] peer-checked:border-plum-900 peer-checked:bg-plum-900 peer-checked:text-white transition text-center">
+                                    <div class="font-bold text-sm">Mais Sentada</div>
+                                    <div class="text-xs opacity-75 mt-0.5">Escritório / Home office</div>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="activity" value="moderate" class="peer sr-only">
+                                <div class="p-3.5 rounded-2xl border-2 border-coral-100 bg-[#FDF8F9] peer-checked:border-plum-900 peer-checked:bg-plum-900 peer-checked:text-white transition text-center">
+                                    <div class="font-bold text-sm">Moderada</div>
+                                    <div class="text-xs opacity-75 mt-0.5">Caminhadas e tarefas ativas</div>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="activity" value="active" class="peer sr-only">
+                                <div class="p-3.5 rounded-2xl border-2 border-coral-100 bg-[#FDF8F9] peer-checked:border-plum-900 peer-checked:bg-plum-900 peer-checked:text-white transition text-center">
+                                    <div class="font-bold text-sm">Muito Ativa</div>
+                                    <div class="text-xs opacity-75 mt-0.5">Em pé o dia todo / agitação</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-coral-100">
+                        <p class="text-xs text-plum-800/60 flex items-center gap-1.5">
+                            <i class="ph-fill ph-lock-key text-coral-500"></i> Comece grátis agora! Seus dados ficam salvos no seu navegador.
+                        </p>
+                        <button type="submit" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-coral-500 to-terracotta-500 text-white font-display font-bold text-base shadow-glow hover:opacity-95 active:scale-[0.98] transition flex items-center justify-center gap-2">
+                            <i class="ph-bold ph-sparkle"></i> Gerar Meu Treino Personalizado
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Card de Gerenciamento da Assinatura -->
+                <div class="mt-8 pt-6 border-t border-coral-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FDF8F9] p-5 rounded-2xl">
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider text-plum-800/60">Status da Sua Assinatura</div>
+                        <div id="profileSubscriptionStatus" class="font-display font-extrabold text-lg text-plum-900 mt-0.5">
+                            Plano Gratuito (Iniciação)
+                        </div>
+                        <p id="profileSubscriptionDesc" class="text-xs text-plum-800/70 mt-0.5">
+                            Acesso liberado ao Treino A e 1 alerta diário.
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <button type="button" id="profileUpgradeBtn" onclick="openPaywallModal('profile')" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-coral-500 to-lilac-600 text-white font-bold text-xs shadow-sm hover:opacity-95 transition flex items-center gap-1.5">
+                            <i class="ph-fill ph-crown text-amber-200"></i> Fazer Upgrade PRO
+                        </button>
+                        <button type="button" id="profileResetSubBtn" onclick="resetSubscriptionToFree()" class="hidden px-4 py-2.5 rounded-xl bg-plum-900/10 hover:bg-plum-900/15 text-plum-900 font-bold text-xs transition">
+                            Voltar para Plano Grátis (Testar Paywall)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- SEÇÃO 2: TREINO PERSONALIZADO & CRONÔMETRO                -->
+        <!-- ========================================================= -->
+        <section id="tab-workout" class="tab-section hidden space-y-6">
+            
+            <!-- Banner de Boas-vindas e Resumo do Dia -->
+            <div class="bg-gradient-to-br from-plum-900 via-plum-800 to-plum-950 rounded-3xl p-6 sm:p-8 text-white shadow-soft relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-coral-500/20 blur-2xl pointer-events-none"></div>
+                <div class="absolute -left-10 -bottom-10 w-40 h-40 rounded-full bg-lilac-500/20 blur-2xl pointer-events-none"></div>
+                
+                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-coral-400 text-xs font-bold mb-3">
+                            <i class="ph-fill ph-calendar-check"></i> <span id="workoutSplitBadge">Divisão ABCD</span>
+                        </div>
+                        <h2 class="font-display text-2xl sm:text-3xl font-extrabold tracking-tight">
+                            Olá, <span id="welcomeUserName" class="text-coral-400">Musa</span>! ✨
+                        </h2>
+                        <p id="welcomeSubtitle" class="text-white/75 text-sm mt-1 max-w-xl">
+                            Seu treino foi otimizado para o seu objetivo e tempo disponível. Toque na imagem de cada aparelho para ver detalhes de ajuste.
+                        </p>
+                    </div>
+
+                    <!-- Barra de Progresso do Treino Atual -->
+                    <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/10 min-w-[240px]">
+                        <div class="flex items-center justify-between text-xs font-bold mb-2">
+                            <span class="text-white/80">Progresso de Hoje</span>
+                            <span id="todayProgressPercent" class="text-coral-400 text-sm">0%</span>
+                        </div>
+                        <div class="w-full h-3 rounded-full bg-plum-950/60 overflow-hidden mb-2.5">
+                            <div id="todayProgressBar" class="h-full rounded-full bg-gradient-to-r from-coral-400 to-lilac-400 transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px] text-white/70">
+                            <span id="todayExercisesCount">0 de 0 exercícios</span>
+                            <button onclick="finishTodayWorkout()" id="btnFinishWorkout" class="text-emerald-300 font-bold hover:underline hidden">
+                                Concluir Dia ✓
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cronômetro Integrado de Descanso -->
+            <div class="bg-white rounded-3xl p-4 sm:p-5 shadow-soft border border-coral-100/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3.5 w-full sm:w-auto">
+                    <div id="timerIconBox" class="w-12 h-12 rounded-2xl bg-coral-50 text-coral-600 flex items-center justify-center shrink-0 transition-colors">
+                        <i class="ph-bold ph-timer text-2xl"></i>
+                    </div>
+                    <div>
+                        <div class="text-[11px] font-bold uppercase tracking-wider text-plum-800/60">Descanso entre séries</div>
+                        <div id="timerDisplay" class="font-display text-2xl sm:text-3xl font-extrabold text-plum-900 tabular-nums">01:00</div>
+                    </div>
+                </div>
+
+                <!-- Botões Rápidos de Tempo -->
+                <div class="flex flex-wrap items-center justify-center sm:justify-end gap-2 w-full sm:w-auto">
+                    <button onclick="startRestTimer(30)" class="px-3.5 py-2.5 rounded-xl bg-coral-50 hover:bg-coral-100 text-coral-600 font-bold text-xs sm:text-sm transition active:scale-95">30s</button>
+                    <button onclick="startRestTimer(45)" class="px-3.5 py-2.5 rounded-xl bg-coral-50 hover:bg-coral-100 text-coral-600 font-bold text-xs sm:text-sm transition active:scale-95">45s</button>
+                    <button onclick="startRestTimer(60)" class="px-3.5 py-2.5 rounded-xl bg-coral-50 hover:bg-coral-100 text-coral-600 font-bold text-xs sm:text-sm transition active:scale-95">60s</button>
+                    <button onclick="startRestTimer(90)" class="px-3.5 py-2.5 rounded-xl bg-coral-50 hover:bg-coral-100 text-coral-600 font-bold text-xs sm:text-sm transition active:scale-95">90s</button>
+                    <button id="timerToggleBtn" onclick="toggleRestTimer()" class="px-4 py-2.5 rounded-xl bg-plum-900 text-white font-bold text-xs sm:text-sm hover:bg-plum-800 transition flex items-center gap-1.5">
+                        <i class="ph-fill ph-play"></i> Iniciar
+                    </button>
+                    <button onclick="resetRestTimer()" class="p-2.5 rounded-xl bg-plum-900/5 text-plum-900 hover:bg-plum-900/10 transition" title="Zerar cronômetro">
+                        <i class="ph-bold ph-arrow-counter-clockwise text-base"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Seletor de Dias do Treino (Treino A, B, C...) -->
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-display font-bold text-lg text-plum-900">Escolha o treino do dia</h3>
+                    <button onclick="handleRegenerateClick()" id="btnRegenerateWorkout" class="text-xs font-bold text-coral-600 hover:text-coral-700 flex items-center gap-1.5 bg-coral-50 px-3 py-1.5 rounded-xl transition">
+                        <i class="ph-bold ph-arrows-clockwise"></i> Variar Exercícios
+                        <span id="lockBadgeRegenerate" class="px-1.5 py-0.5 rounded bg-plum-900 text-amber-300 text-[9px] font-extrabold uppercase">PRO</span>
+                    </button>
+                </div>
+                <div id="workoutDayTabs" class="flex gap-2.5 overflow-x-auto pb-2 no-scrollbar">
+                    <!-- Gerado dinamicamente via JS -->
+                </div>
+            </div>
+
+            <!-- Lista de Exercícios do Dia Selecionado -->
+            <div id="activeWorkoutHeader" class="bg-coral-50/70 border border-coral-100 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                    <h4 id="activeWorkoutTitle" class="font-display font-extrabold text-plum-900 text-lg">Treino A — Glúteos e Posteriores</h4>
+                    <p id="activeWorkoutFocus" class="text-xs text-plum-800/70">Foco em ativação profunda, amplitude e controle excêntrico.</p>
+                </div>
+                <span id="activeWorkoutMeta" class="inline-flex items-center gap-1.5 text-xs font-bold text-plum-900 bg-white px-3 py-1.5 rounded-xl border border-coral-100 self-start sm:self-center">
+                    <i class="ph-fill ph-clock text-coral-500"></i> ~50 min
+                </span>
+            </div>
+
+            <!-- Container com suporte a Paywall Overlay para Treinos B-F -->
+            <div class="relative">
+                <div id="exerciseList" class="space-y-4 transition-all">
+                    <!-- Cards de exercícios com imagens SVG dos aparelhos gerados dinamicamente -->
+                </div>
+
+                <!-- Overlay de Bloqueio Premium (Exibido quando usuário Free seleciona Treino B, C, D...) -->
+                <div id="workoutPaywallOverlay" class="hidden mt-4 rounded-3xl bg-gradient-to-b from-white/95 via-white to-coral-50 border-2 border-coral-200 p-6 sm:p-8 text-center shadow-xl">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-coral-500 to-lilac-600 text-white flex items-center justify-center mx-auto mb-4 shadow-glow">
+                        <i class="ph-fill ph-lock-key text-3xl"></i>
+                    </div>
+                    <span class="inline-block px-3 py-1 rounded-full bg-coral-100 text-coral-700 text-[11px] font-extrabold uppercase tracking-wider mb-2">
+                        Conteúdo Exclusivo AuraFit PRO
+                    </span>
+                    <h4 id="lockedWorkoutHeading" class="font-display text-xl sm:text-2xl font-extrabold text-plum-900 mb-2">
+                        Desbloqueie o Treino B e toda a sua ficha semanal
+                    </h4>
+                    <p class="text-xs sm:text-sm text-plum-800/75 max-w-md mx-auto mb-6 leading-relaxed">
+                        Você já experimentou a estrutura gratuita no <strong>Treino A</strong>. Para evoluir com equilíbrio muscular completo, libere todos os dias da sua ficha com o plano <strong>Mensal</strong> ou <strong>Vitalício</strong>.
+                    </p>
+                    <button onclick="openPaywallModal('locked_workout')" class="px-7 py-4 rounded-2xl bg-gradient-to-r from-coral-500 to-lilac-600 text-white font-display font-bold text-sm sm:text-base shadow-glow hover:opacity-95 active:scale-[0.98] transition inline-flex items-center gap-2">
+                        <i class="ph-fill ph-crown text-amber-200 text-lg"></i> Liberar Todos os Treinos Agora
+                    </button>
+                </div>
+            </div>
+
+            <!-- Botão Finalizar Treino do Dia -->
+            <div id="finishWorkoutContainer" class="pt-2">
+                <button onclick="finishTodayWorkout()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-plum-900 to-plum-800 text-white font-display font-bold text-base shadow-soft hover:opacity-95 active:scale-[0.99] transition flex items-center justify-center gap-2">
+                    <i class="ph-fill ph-check-circle text-emerald-400 text-xl"></i> Registrar Treino de Hoje como Concluído
+                </button>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- SEÇÃO 3: ALERTAS DIÁRIOS PROGRAMÁVEIS                     -->
+        <!-- ========================================================= -->
+        <section id="tab-alerts" class="tab-section hidden space-y-6">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-soft border border-coral-100/80">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-coral-100">
+                    <div>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-coral-50 text-coral-600 text-xs font-bold uppercase tracking-wider mb-2">
+                            <i class="ph-fill ph-bell-ringing"></i> Consistência é a Chave
+                        </span>
+                        <h2 class="font-display text-2xl font-extrabold text-plum-900">Alertas Diários de Treino</h2>
+                        <p class="text-sm text-plum-800/70 mt-1">Programe seus horários para receber notificações no celular/navegador ou adicione ao seu calendário.</p>
+                    </div>
+                    
+                    <!-- Interruptor Geral de Alertas -->
+                    <label class="inline-flex items-center gap-3 cursor-pointer bg-[#FDF8F9] px-4 py-3 rounded-2xl border border-coral-100 self-start">
+                        <span class="text-sm font-bold text-plum-900">Alertas Ativos</span>
+                        <div class="relative">
+                            <input type="checkbox" id="alertMasterToggle" onchange="saveAlertSettings()" class="sr-only peer" checked>
+                            <div class="w-12 h-7 bg-plum-900/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-coral-500"></div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Configuração de Horário e Dias -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
+                    <!-- Horário -->
+                    <div class="bg-[#FDF8F9] p-5 rounded-2xl border border-coral-100">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-plum-800/70 mb-2">Horário do Lembrete</label>
+                        <div class="flex items-center gap-3">
+                            <input type="time" id="alertTimeInput" value="18:00" onchange="saveAlertSettings()" class="w-full px-4 py-3.5 rounded-xl bg-white border border-coral-200 font-display font-extrabold text-2xl text-plum-900 focus:outline-none focus:border-coral-500">
+                        </div>
+                        <p class="text-xs text-plum-800/60 mt-2.5 flex items-center gap-1.5">
+                            <i class="ph-fill ph-info text-coral-500"></i> Dica: Escolha um horário fixo em que você já esteja pronta para ir treinar.
+                        </p>
+                    </div>
+
+                    <!-- Mensagem Personalizada -->
+                    <div class="bg-[#FDF8F9] p-5 rounded-2xl border border-coral-100">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-plum-800/70 mb-2">Frase Motivacional do Alerta</label>
+                        <input type="text" id="alertCustomMsg" value="Hora de cuidar de você! Seu treino de hoje está te esperando 💪✨" onchange="saveAlertSettings()" class="w-full px-4 py-3.5 rounded-xl bg-white border border-coral-200 text-sm font-medium text-plum-900 focus:outline-none focus:border-coral-500">
+                        <div class="flex gap-2 mt-2.5 overflow-x-auto">
+                            <button type="button" onclick="setQuickAlertMsg('Bora treinar! Foco nos seus objetivos hoje 🔥')" class="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-white border border-coral-100 text-plum-800 hover:border-coral-400 shrink-0">Foco total 🔥</button>
+                            <button type="button" onclick="setQuickAlertMsg('Não esquecer a garrafinha de água e o pré-treino! 💧')" class="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-white border border-coral-100 text-plum-800 hover:border-coral-400 shrink-0">Hidratação 💧</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seleção dos Dias da Semana -->
+                <div class="pb-6 border-b border-coral-100">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <div class="flex items-center gap-2">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-plum-800/70">Dias da Semana para o Alerta</label>
+                            <span id="freeAlertLimitBadge" class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
+                                Grátis: 1 dia ativo • PRO: ilimitado
+                            </span>
+                        </div>
+                        <button type="button" onclick="syncAlertDaysWithProfile()" class="text-xs font-bold text-lilac-600 hover:underline">
+                            Sugerir conforme meu plano
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-7 gap-2" id="weekDaysSelector">
+                        <button type="button" data-day="1" onclick="toggleAlertDay(1)" class="day-pill py-3.5 rounded-2xl font-bold text-xs sm:text-sm border-2 transition">Seg</button>
+                        <button type="button" data-day="2" onclick="toggleAlertDay(2)" class="day-pill py-3.5 rounded-2xl font-bold text-xs sm:text-sm border-2 transition">Ter</button>
+                        <button type="button" data-day="3" onclick="toggleAlertDay(3)" class="day-pill py-3.5 rounded-2xl font-bold text-xs sm:text-sm border-2 transition">Qua</button>
+                        <button type="button" data-day="4" onclick="toggleAlertDay(4)" class="day-pill py-3.5 rounded-2xl font-bold text-xs sm:text-sm border-2 transition">Qui</button>
+                        <button type="button" data-day="5" onclick="toggleAlertDay(5)" class="day-pill py-3.5 rounded-2xl font-bold text-xs sm:text-sm border-2 transition">Sex</button>
+                        <button type="button" data-day="6" onclick="toggleAlertDay(6)" class="day-pill py-3.5 rounded-2xl font-bold text-xs sm:text-sm border-2 transition">Sáb</button>
+                        <button type="button" data-day="0" onclick="toggleAlertDay(0)" class="day-pill py-3.5 rounded-2xl font-bold text-xs sm:text-sm border-2 transition">Dom</button>
+                    </div>
+                </div>
+
+                <!-- Permissões, Teste e Exportação Calendário -->
+                <div class="pt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <button type="button" onclick="requestBrowserNotificationPermission()" id="btnRequestNotif" class="py-3.5 px-4 rounded-2xl bg-lilac-50 text-lilac-600 border border-lilac-200 font-bold text-sm hover:bg-lilac-100 transition flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-bell"></i> <span id="notifStatusText">Ativar Notificações</span>
+                    </button>
+                    <button type="button" onclick="triggerTestAlert()" class="py-3.5 px-4 rounded-2xl bg-coral-500 text-white font-bold text-sm shadow-glow hover:opacity-95 transition flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-play-circle"></i> Testar Alerta Agora
+                    </button>
+                    <button type="button" onclick="handleExportCalendarClick()" class="py-3.5 px-4 rounded-2xl bg-plum-900 text-white font-bold text-sm hover:bg-plum-800 transition flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-calendar-plus"></i> <span>Salvar Agenda (.ics)</span>
+                        <span id="lockBadgeCalendar" class="px-1.5 py-0.5 rounded bg-amber-400 text-plum-950 text-[9px] font-extrabold uppercase">PRO</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- SEÇÃO 4: EVOLUÇÃO, IMC, HIDRATAÇÃO E HISTÓRICO            -->
+        <!-- ========================================================= -->
+        <section id="tab-progress" class="tab-section hidden space-y-6">
+            <!-- Cards de Métricas de Saúde -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- IMC -->
+                <div class="bg-white rounded-3xl p-6 shadow-soft border border-coral-100/80">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-plum-800/60">Seu IMC Estimado</span>
+                        <div class="w-9 h-9 rounded-xl bg-coral-50 text-coral-600 flex items-center justify-center">
+                            <i class="ph-fill ph-scales text-lg"></i>
+                        </div>
+                    </div>
+                    <div id="statBmiValue" class="font-display text-3xl font-extrabold text-plum-900">--</div>
+                    <div id="statBmiLabel" class="inline-block mt-2 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold">Preencha seu perfil</div>
+                </div>
+
+                <!-- Hidratação Diária -->
+                <div class="bg-white rounded-3xl p-6 shadow-soft border border-coral-100/80">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-plum-800/60">Meta de Água / Dia</span>
+                        <div class="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+                            <i class="ph-fill ph-drop text-lg"></i>
+                        </div>
+                    </div>
+                    <div id="statWaterValue" class="font-display text-3xl font-extrabold text-plum-900">-- L</div>
+                    <p class="text-xs text-plum-800/65 mt-2">Baseado em 35ml por kg + reposição do treino.</p>
+                </div>
+
+                <!-- Calorias Estimadas -->
+                <div class="bg-white rounded-3xl p-6 shadow-soft border border-coral-100/80">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-plum-800/60">Meta Calórica Sugerida</span>
+                        <div class="w-9 h-9 rounded-xl bg-lilac-50 text-lilac-600 flex items-center justify-center">
+                            <i class="ph-fill ph-flame text-lg"></i>
+                        </div>
+                    </div>
+                    <div id="statCaloriesValue" class="font-display text-3xl font-extrabold text-plum-900">-- kcal</div>
+                    <p id="statCaloriesDesc" class="text-xs text-plum-800/65 mt-2">Ajustada ao seu objetivo e rotina.</p>
+                </div>
+            </div>
+
+            <!-- Frequência Semanal & Histórico -->
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-soft border border-coral-100/80">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h3 class="font-display text-xl font-extrabold text-plum-900">Frequência & Histórico de Treinos</h3>
+                        <p class="text-sm text-plum-800/70">Acompanhe sua constância nas últimas sessões concluídas.</p>
+                    </div>
+                    <div class="bg-coral-50 px-4 py-2.5 rounded-2xl border border-coral-100 flex items-center gap-2 self-start">
+                        <i class="ph-fill ph-trophy text-coral-500 text-xl"></i>
+                        <div>
+                            <div class="text-[11px] font-bold uppercase text-plum-800/60">Total Concluído</div>
+                            <div id="totalWorkoutsCompleted" class="font-display font-extrabold text-plum-900 text-base">0 treinos</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="workoutHistoryList" class="space-y-3">
+                    <!-- Lista dinâmica de treinos concluídos -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Barra de Navegação Inferior (Mobile-First) -->
+    <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-coral-100 px-2 py-2 flex items-center justify-around shadow-[0_-4px_20px_rgba(36,20,39,0.06)]">
+        <button onclick="switchTab('workout')" data-tab="workout" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl text-xs font-bold transition">
+            <i class="ph-bold ph-barbell text-xl mb-0.5"></i>
+            <span>Treino</span>
+        </button>
+        <button onclick="switchTab('alerts')" data-tab="alerts" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl text-xs font-bold transition">
+            <i class="ph-bold ph-bell-ringing text-xl mb-0.5"></i>
+            <span>Alertas</span>
+        </button>
+        <button onclick="switchTab('progress')" data-tab="progress" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl text-xs font-bold transition">
+            <i class="ph-bold ph-chart-line-up text-xl mb-0.5"></i>
+            <span>Saúde</span>
+        </button>
+        <button onclick="switchTab('profile')" data-tab="profile" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl text-xs font-bold transition">
+            <i class="ph-bold ph-user-circle text-xl mb-0.5"></i>
+            <span>Perfil</span>
+        </button>
+    </nav>
+
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+
+    <script>
+        /**
+         * ============================================================================
+         * BIBLIOTECA VISUAL DE APARELHOS DE ACADEMIA (SVGs VETORIAIS CUSTOMIZADOS)
+         * ============================================================================
+         */
+        const MACHINE_LIBRARY = {
+            hip_thrust_bench: {
+                label: "Banco de Elevação Pélvica + Barra",
+                setup: "Apoie a base das escápulas no banco estofado (altura ~35-40cm) e coloque a almofada protetora na barra sobre a linha do quadril.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="14" y="114" width="192" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Banco estofado -->
+                    <rect x="26" y="72" width="46" height="16" rx="6" fill="#F43F5E"/>
+                    <rect x="34" y="88" width="8" height="26" rx="2" fill="#241427"/>
+                    <rect x="56" y="88" width="8" height="26" rx="2" fill="#241427"/>
+                    <!-- Silhueta atleta em ponte -->
+                    <circle cx="52" cy="56" r="8" fill="#F28482"/>
+                    <path d="M58 64 L106 66 L136 96" stroke="#361E3B" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Barra e Anilhas -->
+                    <rect x="96" y="57" width="18" height="12" rx="4" fill="#A855F7"/>
+                    <circle cx="105" cy="63" r="22" fill="#241427" stroke="#F43F5E" stroke-width="4"/>
+                    <circle cx="105" cy="63" r="8" fill="#FFE3E3"/>
+                    <!-- Pés apoiados -->
+                    <rect x="128" y="106" width="18" height="8" rx="4" fill="#F43F5E"/>
+                </svg>`
+            },
+            abductor_machine: {
+                label: "Cadeira Abdutora",
+                setup: "Ajuste a trava inicial fechada ao máximo confortável para maior amplitude. Apoie os joelhos/laterais externas das coxas nas almofadas.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="16" y="116" width="188" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Torre de peso -->
+                    <rect x="144" y="24" width="38" height="92" rx="6" fill="#241427"/>
+                    <rect x="150" y="34" width="26" height="5" rx="2" fill="#F43F5E"/>
+                    <rect x="150" y="43" width="26" height="5" rx="2" fill="#FB7185"/>
+                    <rect x="150" y="52" width="26" height="5" rx="2" fill="#FB7185"/>
+                    <rect x="150" y="61" width="26" height="5" rx="2" fill="#E2D4D9"/>
+                    <rect x="150" y="70" width="26" height="5" rx="2" fill="#E2D4D9"/>
+                    <!-- Assento e Encosto -->
+                    <path d="M54 44 L66 86 L108 86" stroke="#F43F5E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="74" y="86" width="10" height="30" rx="3" fill="#361E3B"/>
+                    <!-- Apoio lateral perna -->
+                    <rect x="96" y="72" width="28" height="14" rx="7" fill="#A855F7"/>
+                    <path d="M110 86 L116 114" stroke="#241427" stroke-width="6" stroke-linecap="round"/>
+                    <!-- Setas de movimento -->
+                    <path d="M92 56 L124 56" stroke="#F43F5E" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 4"/>
+                    <path d="M118 51 L125 56 L118 61" stroke="#F43F5E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>`
+            },
+            cable_pulley: {
+                label: "Polia Baixa / Cross Over (Cabo)",
+                setup: "Posicione a polia na altura mais baixa da torre e prenda a tornozeleira de velcro firme no tornozelo.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="16" y="116" width="188" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Torre Cross Over -->
+                    <rect x="34" y="18" width="12" height="98" rx="4" fill="#241427"/>
+                    <rect x="174" y="18" width="12" height="98" rx="4" fill="#241427"/>
+                    <rect x="30" y="18" width="160" height="10" rx="5" fill="#361E3B"/>
+                    <!-- Roldana baixa -->
+                    <circle cx="48" cy="104" r="8" fill="#F43F5E"/>
+                    <circle cx="48" cy="104" r="3" fill="#FFF"/>
+                    <!-- Cabo esticado -->
+                    <line x1="54" y1="102" x2="132" y2="86" stroke="#A855F7" stroke-width="2.5" stroke-dasharray="4 3"/>
+                    <!-- Atleta executando coice -->
+                    <circle cx="94" cy="44" r="7" fill="#F28482"/>
+                    <path d="M88 52 L92 78 L92 114" stroke="#361E3B" stroke-width="7" stroke-linecap="round"/>
+                    <path d="M92 78 L134 86" stroke="#F43F5E" stroke-width="7" stroke-linecap="round"/>
+                    <path d="M88 56 L46 64" stroke="#361E3B" stroke-width="5" stroke-linecap="round"/>
+                </svg>`
+            },
+            dumbbells_rack: {
+                label: "Halteres Livres",
+                setup: "Selecione um par de halteres que permita manter a coluna neutra e o controle total na fase de descida.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="20" y="116" width="180" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Halter 1 (em pé / inclinado) -->
+                    <g transform="rotate(-18 76 74)">
+                        <rect x="52" y="69" width="48" height="10" rx="4" fill="#361E3B"/>
+                        <rect x="44" y="54" width="12" height="40" rx="5" fill="#F43F5E"/>
+                        <rect x="36" y="59" width="8" height="30" rx="4" fill="#FB7185"/>
+                        <rect x="96" y="54" width="12" height="40" rx="5" fill="#F43F5E"/>
+                        <rect x="108" y="59" width="8" height="30" rx="4" fill="#FB7185"/>
+                    </g>
+                    <!-- Halter 2 (frontal) -->
+                    <rect x="132" y="96" width="46" height="9" rx="4" fill="#241427"/>
+                    <rect x="125" y="83" width="11" height="33" rx="4" fill="#A855F7"/>
+                    <rect x="172" y="83" width="11" height="33" rx="4" fill="#A855F7"/>
+                </svg>`
+            },
+            barbell_stiff: {
+                label: "Barra Olímpica / Montada",
+                setup: "Segure a barra na largura dos ombros (pegada pronada ou mista) e mantenha-a sempre próxima às pernas.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="16" y="116" width="188" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Barra longa -->
+                    <rect x="24" y="68" width="172" height="7" rx="3.5" fill="#361E3B"/>
+                    <!-- Anilhas Esquerda -->
+                    <rect x="40" y="42" width="10" height="58" rx="4" fill="#F43F5E"/>
+                    <rect x="29" y="49" width="9" height="44" rx="4" fill="#A855F7"/>
+                    <!-- Anilhas Direita -->
+                    <rect x="170" y="42" width="10" height="58" rx="4" fill="#F43F5E"/>
+                    <rect x="182" y="49" width="9" height="44" rx="4" fill="#A855F7"/>
+                    <!-- Recartilho central -->
+                    <rect x="88" y="67" width="44" height="9" rx="2" fill="#F28482"/>
+                </svg>`
+            },
+            lying_leg_curl: {
+                label: "Mesa Flexora",
+                setup: "Alinhe a articulação dos joelhos exatamente com o eixo de rotação da máquina e ajuste o rolo acolchoado acima dos calcanhares.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="14" y="116" width="192" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Estrutura Base -->
+                    <rect x="34" y="82" width="115" height="10" rx="4" fill="#241427"/>
+                    <rect x="42" y="92" width="10" height="24" rx="2" fill="#241427"/>
+                    <rect x="126" y="92" width="10" height="24" rx="2" fill="#241427"/>
+                    <!-- Estofado inclinado -->
+                    <path d="M36 74 L92 66 L138 76" stroke="#F43F5E" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Braço articulado e rolo -->
+                    <circle cx="142" cy="76" r="7" fill="#A855F7"/>
+                    <path d="M142 76 L176 52" stroke="#361E3B" stroke-width="6" stroke-linecap="round"/>
+                    <rect x="166" y="44" width="22" height="12" rx="6" fill="#F43F5E"/>
+                </svg>`
+            },
+            seated_leg_curl: {
+                label: "Cadeira Flexora",
+                setup: "Trave firmemente o apoio acolchoado sobre as coxas para evitar que o quadril suba durante a flexão dos joelhos.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="16" y="116" width="188" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Torre peso -->
+                    <rect x="146" y="26" width="34" height="90" rx="5" fill="#241427"/>
+                    <rect x="152" y="36" width="22" height="6" rx="2" fill="#F43F5E"/>
+                    <rect x="152" y="46" width="22" height="6" rx="2" fill="#FB7185"/>
+                    <!-- Encosto e Assento -->
+                    <path d="M52 38 L62 82 L104 82" stroke="#F43F5E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="74" y="82" width="10" height="34" rx="3" fill="#361E3B"/>
+                    <!-- Trava coxa + Rolo inferior -->
+                    <rect x="86" y="64" width="24" height="10" rx="5" fill="#A855F7"/>
+                    <path d="M104 82 L124 106" stroke="#241427" stroke-width="6" stroke-linecap="round"/>
+                    <rect x="114" y="100" width="20" height="11" rx="5.5" fill="#F43F5E"/>
+                </svg>`
+            },
+            smith_squat: {
+                label: "Barra Guiada (Smith) / Rack",
+                setup: "Posicione a barra sobre o trapézio (nunca sobre a cervical) e destrave girando os punhos antes de iniciar.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="24" y="116" width="172" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Trilhos verticais Smith -->
+                    <rect x="56" y="16" width="8" height="100" rx="3" fill="#241427"/>
+                    <rect x="156" y="16" width="8" height="100" rx="3" fill="#241427"/>
+                    <rect x="52" y="16" width="116" height="8" rx="4" fill="#361E3B"/>
+                    <!-- Barra guiada -->
+                    <rect x="34" y="54" width="152" height="6" rx="3" fill="#A855F7"/>
+                    <!-- Anilhas nas pontas -->
+                    <rect x="36" y="36" width="9" height="42" rx="4" fill="#F43F5E"/>
+                    <rect x="175" y="36" width="9" height="42" rx="4" fill="#F43F5E"/>
+                    <!-- Silhueta agachando -->
+                    <circle cx="110" cy="40" r="7" fill="#F28482"/>
+                    <path d="M110 48 L104 78 L122 94 L114 114" stroke="#361E3B" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>`
+            },
+            leg_press_45: {
+                label: "Leg Press 45°",
+                setup: "Apoie totalmente a lombar e o quadril no encosto. Posicione os pés na largura dos ombros no centro da plataforma.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="14" y="116" width="192" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Trilho inclinado 45 graus -->
+                    <line x1="72" y1="96" x2="168" y2="26" stroke="#241427" stroke-width="8" stroke-linecap="round"/>
+                    <!-- Banco encosto -->
+                    <path d="M40 58 L66 96 L94 96" stroke="#F43F5E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="64" y="96" width="10" height="20" rx="2" fill="#241427"/>
+                    <!-- Plataforma de peso -->
+                    <rect x="132" y="30" width="12" height="46" rx="5" transform="rotate(-35 132 30)" fill="#361E3B"/>
+                    <circle cx="164" cy="44" r="16" fill="#F43F5E" stroke="#241427" stroke-width="3"/>
+                    <circle cx="164" cy="44" r="5" fill="#FFF"/>
+                </svg>`
+            },
+            leg_extension: {
+                label: "Cadeira Extensora",
+                setup: "Ajuste o encosto para que a dobra do joelho fique rente à borda do assento e o rolo inferior apoie na frente da canela.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="16" y="116" width="188" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Torre peso -->
+                    <rect x="146" y="26" width="34" height="90" rx="5" fill="#241427"/>
+                    <rect x="152" y="36" width="22" height="6" rx="2" fill="#F43F5E"/>
+                    <rect x="152" y="46" width="22" height="6" rx="2" fill="#FB7185"/>
+                    <!-- Encosto e Assento -->
+                    <path d="M52 38 L62 82 L106 82" stroke="#F43F5E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="74" y="82" width="10" height="34" rx="3" fill="#361E3B"/>
+                    <!-- Alavanca frontal -->
+                    <path d="M106 82 L134 74" stroke="#A855F7" stroke-width="6" stroke-linecap="round"/>
+                    <rect x="126" y="66" width="18" height="12" rx="6" fill="#F43F5E"/>
+                </svg>`
+            },
+            hack_squat: {
+                label: "Agachamento Hack Machine",
+                setup: "Encaixe os ombros firmes sob as almofadas superiores e mantenha toda a coluna colada no encosto inclinado.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="16" y="116" width="188" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Estrutura inclinada Hack -->
+                    <line x1="64" y1="112" x2="132" y2="24" stroke="#241427" stroke-width="9" stroke-linecap="round"/>
+                    <line x1="132" y1="24" x2="156" y2="112" stroke="#361E3B" stroke-width="7" stroke-linecap="round"/>
+                    <!-- Plataforma pés -->
+                    <line x1="48" y1="104" x2="84" y2="114" stroke="#F43F5E" stroke-width="8" stroke-linecap="round"/>
+                    <!-- Encosto e ombreiras -->
+                    <line x1="86" y1="84" x2="118" y2="42" stroke="#F43F5E" stroke-width="12" stroke-linecap="round"/>
+                    <circle cx="128" cy="48" r="14" fill="#A855F7" stroke="#241427" stroke-width="3"/>
+                </svg>`
+            },
+            calf_machine: {
+                label: "Máquina de Panturrilha (Gêmeos)",
+                setup: "Apoie apenas a ponta/metatarso dos pés na plataforma para permitir alongamento máximo do calcanhar.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="24" y="116" width="172" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Base e degrau -->
+                    <rect x="78" y="102" width="44" height="14" rx="4" fill="#241427"/>
+                    <rect x="114" y="24" width="10" height="92" rx="4" fill="#361E3B"/>
+                    <!-- Almofada ombro / joelho -->
+                    <rect x="74" y="42" width="44" height="14" rx="7" fill="#F43F5E"/>
+                    <!-- Pernas em ponta de pé -->
+                    <path d="M96 56 L96 100" stroke="#A855F7" stroke-width="8" stroke-linecap="round"/>
+                    <!-- Seta vertical -->
+                    <path d="M56 50 L56 84" stroke="#F43F5E" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M51 56 L56 49 L61 56" stroke="#F43F5E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>`
+            },
+            lat_pulldown: {
+                label: "Puxada Alta (Pulley Costas)",
+                setup: "Ajuste o rolo trava-coxas firme sobre as pernas para estabilizar o tronco durante a puxada.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="24" y="116" width="172" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Estrutura Pulley -->
+                    <rect x="136" y="16" width="36" height="100" rx="5" fill="#241427"/>
+                    <path d="M154 16 L84 16 L84 28" stroke="#361E3B" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Barra superior -->
+                    <line x1="56" y1="34" x2="112" y2="34" stroke="#F43F5E" stroke-width="6" stroke-linecap="round"/>
+                    <line x1="84" y1="24" x2="84" y2="34" stroke="#A855F7" stroke-width="2.5"/>
+                    <!-- Banco e trava coxa -->
+                    <rect x="66" y="84" width="42" height="10" rx="5" fill="#F43F5E"/>
+                    <rect x="82" y="94" width="10" height="22" rx="2" fill="#241427"/>
+                    <rect x="94" y="68" width="22" height="9" rx="4.5" fill="#A855F7"/>
+                </svg>`
+            },
+            seated_row: {
+                label: "Remada Baixa Sentada (Polia)",
+                setup: "Apoie os pés na plataforma frontal mantendo os joelhos levemente flexionados e o peito aberto.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="16" y="116" width="188" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Torre peso -->
+                    <rect x="154" y="24" width="32" height="92" rx="5" fill="#241427"/>
+                    <!-- Banco longo -->
+                    <rect x="34" y="88" width="96" height="10" rx="5" fill="#F43F5E"/>
+                    <rect x="44" y="98" width="10" height="18" rx="2" fill="#241427"/>
+                    <rect x="110" y="98" width="10" height="18" rx="2" fill="#241427"/>
+                    <!-- Apoio pés e cabo -->
+                    <line x1="132" y1="74" x2="144" y2="96" stroke="#361E3B" stroke-width="7" stroke-linecap="round"/>
+                    <line x1="154" y1="76" x2="104" y2="76" stroke="#A855F7" stroke-width="2.5" stroke-dasharray="4 3"/>
+                    <circle cx="102" cy="76" r="5" fill="#F43F5E"/>
+                </svg>`
+            },
+            incline_bench: {
+                label: "Banco Inclinado (30° a 45°)",
+                setup: "Ajuste o encosto em 30° a 45° para focar na porção superior do peitoral e ombros sem sobrecarregar articulações.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="24" y="116" width="172" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Base metálica -->
+                    <rect x="52" y="96" width="104" height="8" rx="4" fill="#241427"/>
+                    <rect x="64" y="104" width="10" height="12" rx="2" fill="#241427"/>
+                    <rect x="136" y="104" width="10" height="12" rx="2" fill="#241427"/>
+                    <!-- Encosto inclinado + Assento -->
+                    <path d="M56 54 L104 86 L148 86" stroke="#F43F5E" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Halter acima -->
+                    <rect x="94" y="34" width="32" height="6" rx="3" fill="#361E3B"/>
+                    <rect x="88" y="26" width="8" height="22" rx="3" fill="#A855F7"/>
+                    <rect x="124" y="26" width="8" height="22" rx="3" fill="#A855F7"/>
+                </svg>`
+            },
+            cable_triceps: {
+                label: "Polia Alta (Corda / Barra Reta)",
+                setup: "Posicione a polia no ponto mais alto e encaixe a corda ou barra reta. Mantenha os cotovelos colados ao tronco.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="28" y="116" width="164" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Coluna Polia -->
+                    <rect x="64" y="16" width="12" height="100" rx="4" fill="#241427"/>
+                    <rect x="60" y="16" width="54" height="9" rx="4" fill="#361E3B"/>
+                    <!-- Roldana superior e corda -->
+                    <circle cx="104" cy="28" r="6" fill="#F43F5E"/>
+                    <line x1="104" y1="34" x2="104" y2="62" stroke="#A855F7" stroke-width="2.5"/>
+                    <path d="M104 62 L94 74 M104 62 L114 74" stroke="#F43F5E" stroke-width="4" stroke-linecap="round"/>
+                    <circle cx="93" cy="75" r="3.5" fill="#241427"/>
+                    <circle cx="115" cy="75" r="3.5" fill="#241427"/>
+                </svg>`
+            },
+            exercise_mat: {
+                label: "Colchonete / Solo",
+                setup: "Estenda um colchonete firme no chão e mantenha o abdômen contraído (umbigo para dentro) durante todo o exercício.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Tapete Yoga/Colchonete -->
+                    <rect x="24" y="106" width="172" height="10" rx="5" fill="#F43F5E"/>
+                    <ellipse cx="188" cy="111" rx="8" ry="6" fill="#FB7185"/>
+                    <!-- Silhueta Prancha Isométrica -->
+                    <circle cx="62" cy="74" r="7" fill="#F28482"/>
+                    <path d="M68 80 L158 92" stroke="#361E3B" stroke-width="8" stroke-linecap="round"/>
+                    <path d="M74 82 L64 104 L78 104" stroke="#A855F7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="158" y1="92" x2="162" y2="104" stroke="#361E3B" stroke-width="5" stroke-linecap="round"/>
+                </svg>`
+            },
+            treadmill_cardio: {
+                label: "Esteira Ergométrica (HIIT / Inclinada)",
+                setup: "Ajuste a inclinação entre 6% e 10% para caminhada rápida com foco extra em glúteos, ou alterne tiros de corrida.",
+                svg: `<svg viewBox="0 0 220 140" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="20" y="116" width="180" height="6" rx="3" fill="#E2D4D9"/>
+                    <!-- Base Esteira Inclinada -->
+                    <path d="M36 108 L164 94" stroke="#241427" stroke-width="11" stroke-linecap="round"/>
+                    <path d="M42 104 L158 91" stroke="#F43F5E" stroke-width="3" stroke-dasharray="8 6"/>
+                    <!-- Coluna e Painel -->
+                    <path d="M158 94 L144 36 L124 30" stroke="#361E3B" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="116" y="22" width="32" height="12" rx="4" fill="#A855F7"/>
+                </svg>`
+            }
+        };
+
+        /**
+         * ============================================================================
+         * AURAFIT — BANCO DE EXERCÍCIOS FEMININOS COM IDENTIFICAÇÃO DE APARELHOS
+         * ============================================================================
+         */
+        const EXERCISE_DB = {
+            glutes: [
+                { name: "Elevação Pélvica com Barra", muscle: "Glúteo Máximo", machineType: "hip_thrust_bench", tip: "Queixo no peito, contraia os glúteos no topo por 2 segundos sem hiperestender a lombar." },
+                { name: "Cadeira Abdutora (Tronco Inclinado)", muscle: "Glúteo Médio e Mínimo", machineType: "abductor_machine", tip: "Incline o tronco levemente à frente segurando no apoio para focar nas fibras superiores." },
+                { name: "Agachamento Sumô com Halter", muscle: "Glúteos e Adutores", machineType: "dumbbells_rack", tip: "Pés afastados além da largura dos ombros, pontas para fora e joelhos acompanhando os pés." },
+                { name: "Coice na Polia Baixa (Glúteo Cabo)", muscle: "Glúteo Máximo", machineType: "cable_pulley", tip: "Mantenha o abdômen travado e evite girar o quadril durante a extensão da perna." },
+                { name: "Búlgaro com Halteres", muscle: "Glúteos e Quadríceps", machineType: "dumbbells_rack", tip: "Incline o tronco levemente à frente para maior recrutamento dos glúteos na subida." },
+                { name: "Abdução de Quadril na Polia", muscle: "Glúteo Médio", machineType: "cable_pulley", tip: "Eleve a perna lateralmente com controle total sem inclinar o tronco para o lado oposto." }
+            ],
+            hamstrings: [
+                { name: "Stiff com Barra ou Halteres", muscle: "Posteriores de Coxa e Glúteos", machineType: "barbell_stiff", tip: "Desça deslizando o peso rente às pernas com coluna neutra e joelhos semi-flexionados." },
+                { name: "Mesa Flexora", muscle: "Posteriores de Coxa", machineType: "lying_leg_curl", tip: "Mantenha o quadril bem apoiado no banco e controle a descida do peso lentamente." },
+                { name: "Cadeira Flexora", muscle: "Posteriores de Coxa", machineType: "seated_leg_curl", tip: "Ajuste o rolo logo acima dos calcanhares e faça a flexão completa." },
+                { name: "Stiff Unilateral com Halter", muscle: "Posteriores e Equilíbrio", machineType: "dumbbells_rack", tip: "Mantenha o quadril alinhado paralelo ao chão enquanto estende a perna livre para trás." }
+            ],
+            quads: [
+                { name: "Agachamento Livre ou Guiado (Smith)", muscle: "Quadríceps e Glúteos", machineType: "smith_squat", tip: "Desça controlando o movimento até quebrar a paralela, mantendo os calcanhares firmes." },
+                { name: "Leg Press 45°", muscle: "Quadríceps e Glúteos", machineType: "leg_press_45", tip: "Não trave os joelhos no topo e evite tirar a lombar do encosto na descida." },
+                { name: "Cadeira Extensora", muscle: "Quadríceps (Reto Femoral)", machineType: "leg_extension", tip: "Segure 1 segundo no topo da extensão e desça em 3 segundos." },
+                { name: "Afundo / Passada com Halteres", muscle: "Quadríceps e Glúteos", machineType: "dumbbells_rack", tip: "Dê passos firmes mantendo o tronco erguido e o joelho alinhado com a ponta do pé." },
+                { name: "Agachamento Hack", muscle: "Quadríceps", machineType: "hack_squat", tip: "Apoie bem as costas e empurre a plataforma com toda a planta dos pés." }
+            ],
+            calves: [
+                { name: "Panturrilha em Pé na Máquina", muscle: "Panturrilhas (Gastrocnêmio)", machineType: "calf_machine", tip: "Alongue bem o calcanhar na descida e suba o máximo possível na ponta dos pés." },
+                { name: "Panturrilha no Leg Press 45°", muscle: "Panturrilhas (Sóleo/Gastro)", machineType: "leg_press_45", tip: "Apoie a ponta dos pés na base da plataforma e faça amplitude máxima sem dobrar os joelhos." }
+            ],
+            back_biceps: [
+                { name: "Puxada Alta Aberta na Polia", muscle: "Costas (Dorsais)", machineType: "lat_pulldown", tip: "Puxe a barra em direção ao topo do peito fechando as escápulas e baixando os ombros." },
+                { name: "Remada Baixa Sentada (Triângulo)", muscle: "Costas (Meio das Costas)", machineType: "seated_row", tip: "Mantenha a coluna ereta e puxe o triângulo em direção ao umbigo." },
+                { name: "Remada Unilateral com Halter (Serrote)", muscle: "Dorsais", machineType: "dumbbells_rack", tip: "Apoie uma mão no banco e puxe o halter trazendo o cotovelo rente ao tronco." },
+                { name: "Pulldown na Polia Alta com Corda", muscle: "Dorsais e Postura", machineType: "cable_triceps", tip: "Com braços semi-estendidos, puxe a corda até a linha das coxas contraindo as costas." },
+                { name: "Rosca Direta com Halteres", muscle: "Bíceps", machineType: "dumbbells_rack", tip: "Evite balançar o tronco; mantenha os cotovelos fixos ao lado do corpo." }
+            ],
+            chest_shoulders_triceps: [
+                { name: "Supino Inclinado com Halteres", muscle: "Peitoral Superior", machineType: "incline_bench", tip: "Mantenha os punhos neutros e desça os halteres até a linha do peito com controle." },
+                { name: "Desenvolvimento de Ombros com Halteres", muscle: "Ombros (Deltoides)", machineType: "dumbbells_rack", tip: "Empurre os halteres acima da cabeça sem arquear excessivamente a lombar." },
+                { name: "Elevação Lateral com Halteres", muscle: "Deltoide Lateral", machineType: "dumbbells_rack", tip: "Eleve os braços até a altura dos ombros com cotovelos levemente flexionados." },
+                { name: "Tríceps Corda na Polia Alta", muscle: "Tríceps", machineType: "cable_triceps", tip: "Abra as pontas da corda no final do movimento mantendo os cotovelos colados ao tronco." },
+                { name: "Elevação Frontal na Polia Baixa", muscle: "Deltoide Anterior", machineType: "cable_pulley", tip: "Suba a barra/corda até a linha dos olhos controlando o retorno sem soltar o peso." }
+            ],
+            core_cardio: [
+                { name: "Prancha Isométrica no Colchonete", muscle: "Core Profundo e Cintura", machineType: "exercise_mat", tip: "Mantenha quadril alinhado, glúteos contraídos e respiração fluida por 30 a 45 segundos." },
+                { name: "Abdominal Infra Elevando Pernas", muscle: "Abdômen Inferior", machineType: "exercise_mat", tip: "Mantenha a lombar pressionada contra o colchonete durante toda a descida das pernas." },
+                { name: "Abdominal Supra na Polia (Crunch)", muscle: "Reto Abdominal", machineType: "cable_triceps", tip: "Flexione a coluna enrolando o tronco em direção ao quadril usando a força do abdômen." },
+                { name: "Cardio HIIT na Esteira Inclinada", muscle: "Resistência e Queima Calórica", machineType: "treadmill_cardio", tip: "Alterne 1 min em ritmo intenso (ou inclinação 8%) com 1 min de caminhada moderada." }
+            ]
+        };
+
+        // Links Oficiais de Pagamento (Mercado Pago)
+        const PAYMENT_LINKS = {
+            monthly: {
+                url: 'https://mpago.la/1M23YBk',
+                priceLabel: 'R$ 19,90/mês',
+                shortTitle: 'Mensal R$ 19,90'
+            },
+            lifetime: {
+                url: 'https://mpago.la/2uTFpS7',
+                priceLabel: 'R$ 199,90',
+                shortTitle: 'Vitalício R$ 199,90'
+            }
+        };
+
+        // Estado Temporário do Modal de Checkout
+        let checkoutState = {
+            selectedPlan: 'lifetime'
+        };
+
+        // Estado Global da Aplicação
+        let appState = {
+            profile: null,
+            workoutPlan: [],
+            activeDayIndex: 0,
+            completedExercises: {},
+            history: [],
+            subscription: {
+                tier: 'free',
+                activatedAt: null
+            },
+            alerts: {
+                enabled: true,
+                time: "18:00",
+                days: [1],
+                message: "Hora de cuidar de você! Seu treino de hoje está te esperando 💪✨",
+                lastTriggeredDateKey: ""
+            }
+        };
+
+        // Variáveis do Cronômetro
+        let timerSeconds = 60;
+        let timerInterval = null;
+        let timerRunning = false;
+
+        // Inicialização
+        window.addEventListener('DOMContentLoaded', () => {
+            loadStateFromStorage();
+            // Migra fichas antigas sem machineType caso existam no localStorage
+            if (appState.profile && appState.workoutPlan.length) {
+                const needsMigration = appState.workoutPlan.some(d => d.exercises.some(e => !e.machineType));
+                if (needsMigration) {
+                    appState.workoutPlan = generateSmartWorkoutPlan(appState.profile);
+                    saveStateToStorage();
+                }
+            }
+            enforceFreeTierLimits();
+            updateSubscriptionUI();
+            setupAlertCheckerLoop();
+            updateNotificationStatusUI();
+
+            if (appState.profile) {
+                populateProfileForm(appState.profile);
+                updateHealthMetricsUI();
+                renderWorkoutUI();
+                switchTab('workout');
+            } else {
+                switchTab('profile');
+            }
+            renderAlertSettingsUI();
+            renderHistoryUI();
+        });
+
+        /**
+         * Helpers de Assinatura (Freemium vs PRO)
+         */
+        function isUserPro() {
+            return appState.subscription && (appState.subscription.tier === 'monthly' || appState.subscription.tier === 'lifetime');
+        }
+
+        function enforceFreeTierLimits() {
+            if (!isUserPro()) {
+                if (appState.alerts.days.length > 1) {
+                    appState.alerts.days = [appState.alerts.days[0]];
+                }
+            }
+        }
+
+        function updateSubscriptionUI() {
+            const pro = isUserPro();
+            const tier = appState.subscription ? appState.subscription.tier : 'free';
+
+            const headerUpgradeBtn = document.getElementById('headerUpgradeBtn');
+            const headerProBadge = document.getElementById('headerProBadge');
+            const headerProLabel = document.getElementById('headerProLabel');
+            const freeTierBanner = document.getElementById('freeTierBanner');
+
+            const lockBadgeRegen = document.getElementById('lockBadgeRegenerate');
+            const lockBadgeCal = document.getElementById('lockBadgeCalendar');
+            const freeAlertLimitBadge = document.getElementById('freeAlertLimitBadge');
+
+            const profileSubStatus = document.getElementById('profileSubscriptionStatus');
+            const profileSubDesc = document.getElementById('profileSubscriptionDesc');
+            const profileUpgradeBtn = document.getElementById('profileUpgradeBtn');
+            const profileResetSubBtn = document.getElementById('profileResetSubBtn');
+
+            if (pro) {
+                headerUpgradeBtn.classList.add('hidden');
+                headerProBadge.classList.remove('hidden');
+                headerProBadge.classList.add('flex');
+                headerProLabel.textContent = tier === 'lifetime' ? 'AuraFit Vitalício' : 'AuraFit PRO';
+                freeTierBanner.classList.add('hidden');
+
+                if (lockBadgeRegen) lockBadgeRegen.classList.add('hidden');
+                if (lockBadgeCal) lockBadgeCal.classList.add('hidden');
+                if (freeAlertLimitBadge) freeAlertLimitBadge.classList.add('hidden');
+
+                profileSubStatus.innerHTML = tier === 'lifetime'
+                    ? `<span class="text-coral-600">AuraFit Vitalício Ativo 👑</span>`
+                    : `<span class="text-lilac-600">AuraFit PRO Mensal Ativo ✨</span>`;
+                profileSubDesc.textContent = tier === 'lifetime'
+                    ? "Você possui acesso ilimitado e vitalício a todos os treinos e recursos."
+                    : "Sua assinatura mensal está ativa com todos os treinos e alertas liberados.";
+                profileUpgradeBtn.classList.add('hidden');
+                profileResetSubBtn.classList.remove('hidden');
+            } else {
+                headerUpgradeBtn.classList.remove('hidden');
+                headerProBadge.classList.add('hidden');
+                headerProBadge.classList.remove('flex');
+                freeTierBanner.classList.remove('hidden');
+
+                if (lockBadgeRegen) lockBadgeRegen.classList.remove('hidden');
+                if (lockBadgeCal) lockBadgeCal.classList.remove('hidden');
+                if (freeAlertLimitBadge) freeAlertLimitBadge.classList.remove('hidden');
+
+                profileSubStatus.textContent = "Plano Gratuito (Iniciação)";
+                profileSubDesc.textContent = "Acesso liberado ao Treino A e 1 alerta diário. Faça upgrade para liberar toda a ficha.";
+                profileUpgradeBtn.classList.remove('hidden');
+                profileResetSubBtn.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Persistência no localStorage
+         */
+        function saveStateToStorage() {
+            try {
+                localStorage.setItem('aurafit_state_v1', JSON.stringify(appState));
+            } catch (e) {
+                console.error("Erro ao salvar no localStorage:", e);
+            }
+        }
+
+        function loadStateFromStorage() {
+            try {
+                const raw = localStorage.getItem('aurafit_state_v1');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    appState = {
+                        ...appState,
+                        ...parsed,
+                        subscription: { ...appState.subscription, ...(parsed.subscription || {}) },
+                        alerts: { ...appState.alerts, ...(parsed.alerts || {}) }
+                    };
+                }
+            } catch (e) {
+                console.error("Erro ao ler localStorage:", e);
+            }
+        }
+
+        /**
+         * Navegação entre Abas
+         */
+        function switchTab(tabId) {
+            if (!appState.profile && tabId === 'workout') {
+                showToast("Preencha seu perfil primeiro para gerarmos seu treino!", "info");
+                tabId = 'profile';
+            }
+
+            document.querySelectorAll('.tab-section').forEach(sec => sec.classList.add('hidden'));
+            const target = document.getElementById(`tab-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.dataset.tab === tabId) {
+                    btn.classList.add('bg-white', 'text-coral-600', 'shadow-sm');
+                    btn.classList.remove('text-plum-800/70');
+                } else {
+                    btn.classList.remove('bg-white', 'text-coral-600', 'shadow-sm');
+                    btn.classList.add('text-plum-800/70');
+                }
+            });
+
+            document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+                if (btn.dataset.tab === tabId) {
+                    btn.classList.add('text-coral-600', 'bg-coral-50');
+                    btn.classList.remove('text-plum-800/60');
+                } else {
+                    btn.classList.remove('text-coral-600', 'bg-coral-50');
+                    btn.classList.add('text-plum-800/60');
+                }
+            });
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        /**
+         * Submissão do Perfil & Geração do Treino
+         */
+        function handleProfileSubmit(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('inputName').value.trim();
+            const age = parseInt(document.getElementById('inputAge').value, 10);
+            const weight = parseFloat(document.getElementById('inputWeight').value);
+            const height = parseInt(document.getElementById('inputHeight').value, 10);
+            const goal = document.querySelector('input[name="goal"]:checked').value;
+            const level = document.getElementById('inputLevel').value;
+            const days = parseInt(document.getElementById('inputDays').value, 10);
+            const duration = parseInt(document.getElementById('inputDuration').value, 10);
+            const activity = document.querySelector('input[name="activity"]:checked').value;
+
+            const isFirstSave = !appState.profile;
+            appState.profile = { name, age, weight, height, goal, level, days, duration, activity };
+            appState.workoutPlan = generateSmartWorkoutPlan(appState.profile);
+            appState.activeDayIndex = 0;
+
+            if (isFirstSave) {
+                syncAlertDaysWithProfile(true);
+            }
+
+            saveStateToStorage();
+            populateProfileForm(appState.profile);
+            updateHealthMetricsUI();
+            renderWorkoutUI();
+            renderAlertSettingsUI();
+
+            showToast(`Treino de ${days} dias com aparelhos ilustrados criado para você, ${name}!`, "success");
+            switchTab('workout');
+        }
+
+        function populateProfileForm(p) {
+            if (!p) return;
+            document.getElementById('inputName').value = p.name || '';
+            document.getElementById('inputAge').value = p.age || '';
+            document.getElementById('inputWeight').value = p.weight || '';
+            document.getElementById('inputHeight').value = p.height || '';
+            document.getElementById('inputLevel').value = p.level || 'intermediate';
+            document.getElementById('inputDays').value = p.days || 4;
+            document.getElementById('inputDuration').value = p.duration || 60;
+
+            const goalRadio = document.querySelector(`input[name="goal"][value="${p.goal}"]`);
+            if (goalRadio) goalRadio.checked = true;
+
+            const actRadio = document.querySelector(`input[name="activity"][value="${p.activity}"]`);
+            if (actRadio) actRadio.checked = true;
+
+            const badge = document.getElementById('headerUserBadge');
+            badge.classList.remove('hidden');
+            document.getElementById('headerUserName').textContent = p.name;
+        }
+
+        /**
+         * Algoritmo Inteligente de Geração de Treino Feminino
+         */
+        function generateSmartWorkoutPlan(profile, shuffleSeed = 0) {
+            const { goal, level, days, duration } = profile;
+
+            let sets = level === 'beginner' ? 3 : 4;
+            let reps = "10 a 12";
+            let rest = 60;
+
+            if (goal === 'hypertrophy' || goal === 'glutes') {
+                reps = level === 'beginner' ? "10 a 12" : "8 a 12";
+                rest = 60;
+            } else if (goal === 'weightloss') {
+                reps = "12 a 15";
+                rest = 45;
+            } else if (goal === 'health') {
+                reps = "12 a 15";
+                rest = 60;
+            }
+
+            let exCount = 5;
+            if (duration <= 30) exCount = 4;
+            else if (duration === 45) exCount = 5;
+            else if (duration === 60) exCount = 6;
+            else if (duration >= 90) exCount = 7;
+
+            const pick = (category, count, offset = 0) => {
+                const list = EXERCISE_DB[category] || [];
+                const result = [];
+                for (let i = 0; i < count; i++) {
+                    const idx = (i + offset + shuffleSeed) % list.length;
+                    result.push({
+                        ...list[idx],
+                        sets,
+                        reps,
+                        rest
+                    });
+                }
+                return result;
+            };
+
+            const plan = [];
+
+            if (days === 2) {
+                plan.push({
+                    code: "Treino A",
+                    title: "Inferiores Completo & Core",
+                    focus: "Glúteos, quadríceps, posteriores e abdômen.",
+                    exercises: [
+                        ...pick('glutes', 2, 0),
+                        ...pick('quads', 2, 0),
+                        ...pick('hamstrings', 1, 0),
+                        ...pick('core_cardio', exCount - 5 > 0 ? exCount - 5 : 1, 0)
+                    ].slice(0, exCount)
+                });
+                plan.push({
+                    code: "Treino B",
+                    title: "Superiores Definidos & Glúteo Isolado",
+                    focus: "Postura firme, braços torneados e estímulo extra em glúteos.",
+                    exercises: [
+                        ...pick('back_biceps', 2, 0),
+                        ...pick('chest_shoulders_triceps', 2, 0),
+                        ...pick('glutes', 1, 2),
+                        ...pick('core_cardio', 1, 1)
+                    ].slice(0, exCount)
+                });
+            } else if (days === 3) {
+                plan.push({
+                    code: "Treino A",
+                    title: "Glúteos & Posteriores",
+                    focus: "Foco máximo na cadeia posterior e contorno dos glúteos.",
+                    exercises: [
+                        ...pick('glutes', 3, 0),
+                        ...pick('hamstrings', 2, 0),
+                        ...pick('calves', 1, 0)
+                    ].slice(0, exCount)
+                });
+                plan.push({
+                    code: "Treino B",
+                    title: "Superiores Completos & Abdômen",
+                    focus: "Costas definidas, ombros desenhados e core fortalecido.",
+                    exercises: [
+                        ...pick('back_biceps', 2, 0),
+                        ...pick('chest_shoulders_triceps', 3, 0),
+                        ...pick('core_cardio', 1, 0)
+                    ].slice(0, exCount)
+                });
+                plan.push({
+                    code: "Treino C",
+                    title: "Quadríceps, Glúteo Médio & Cardio",
+                    focus: "Volume e definição na parte anterior das coxas e estabilidade.",
+                    exercises: [
+                        ...pick('quads', 3, 0),
+                        ...pick('glutes', 2, 1),
+                        ...pick('core_cardio', 1, 3)
+                    ].slice(0, exCount)
+                });
+            } else if (days === 4) {
+                plan.push({
+                    code: "Treino A",
+                    title: "Glúteos & Posteriores",
+                    focus: "Ativação profunda de glúteo máximo e posteriores.",
+                    exercises: [
+                        ...pick('glutes', 3, 0),
+                        ...pick('hamstrings', 2, 0),
+                        ...pick('calves', 1, 0)
+                    ].slice(0, exCount)
+                });
+                plan.push({
+                    code: "Treino B",
+                    title: "Costas, Bíceps & Core",
+                    focus: "Melhora da postura, cintura visualmente mais fina e abdômen.",
+                    exercises: [
+                        ...pick('back_biceps', 4, 0),
+                        ...pick('core_cardio', 2, 0)
+                    ].slice(0, exCount)
+                });
+                plan.push({
+                    code: "Treino C",
+                    title: "Quadríceps & Panturrilhas",
+                    focus: "Força e definição muscular nas coxas.",
+                    exercises: [
+                        ...pick('quads', 4, 0),
+                        ...pick('calves', 2, 0)
+                    ].slice(0, exCount)
+                });
+                plan.push({
+                    code: "Treino D",
+                    title: "Ombros, Tríceps & Glúteo Médio",
+                    focus: "Ombros arredondados, braços firmes e abdução de glúteos.",
+                    exercises: [
+                        ...pick('chest_shoulders_triceps', 3, 0),
+                        ...pick('glutes', 2, 1),
+                        ...pick('core_cardio', 1, 3)
+                    ].slice(0, exCount)
+                });
+            } else {
+                plan.push({
+                    code: "Treino A",
+                    title: "Foco Total Glúteos",
+                    focus: "Construção e elevação dos glúteos com alta intensidade.",
+                    exercises: [
+                        ...pick('glutes', 4, 0),
+                        ...pick('core_cardio', 2, 0)
+                    ].slice(0, exCount)
+                });
+                plan.push({
+                    code: "Treino B",
+                    title: "Costas & Bíceps",
+                    focus: "Esculpir dorsais e melhorar postura.",
+                    exercises: [
+                        ...pick('back_biceps', 5, 0),
+                        ...pick('core_cardio', 1, 1)
+                    ].slice(0, exCount)
+                });
+                plan.push({
+                    code: "Treino C",
+                    title: "Quadríceps Intenso",
+                    focus: "Foco na parte frontal das coxas e panturrilhas.",
+                    exercises: [
+                        ...pick('quads', 4, 0),
+                        ...pick('calves', 2, 0)
+                    ].slice(0, exCount)
+                });
+                plan.push({
+                    code: "Treino D",
+                    title: "Ombros, Peito & Tríceps",
+                    focus: "Definição elegante de membros superiores.",
+                    exercises: [
+                        ...pick('chest_shoulders_triceps', 5, 0),
+                        ...pick('core_cardio', 1, 2)
+                    ].slice(0, exCount)
+                });
+                plan.push({
+                    code: "Treino E",
+                    title: "Posteriores & Glúteo Isolado",
+                    focus: "Harmonia posterior e queima metabólica.",
+                    exercises: [
+                        ...pick('hamstrings', 3, 0),
+                        ...pick('glutes', 2, 2),
+                        ...pick('core_cardio', 1, 3)
+                    ].slice(0, exCount)
+                });
+                if (days === 6) {
+                    plan.push({
+                        code: "Treino F",
+                        title: "Core, Cardio & Mobilidade Ativa",
+                        focus: "Condicionamento cardiovascular e definição abdominal.",
+                        exercises: [
+                            ...pick('core_cardio', 4, 0),
+                            ...pick('glutes', 1, 1)
+                        ].slice(0, exCount)
+                    });
+                }
+            }
+
+            return plan;
+        }
+
+        function regenerateWorkoutPlan() {
+            if (!appState.profile) return;
+            const randomSeed = Math.floor(Math.random() * 10) + 1;
+            appState.workoutPlan = generateSmartWorkoutPlan(appState.profile, randomSeed);
+            saveStateToStorage();
+            renderWorkoutUI();
+            showToast("Novos exercícios e aparelhos atualizados!", "success");
+        }
+
+        function handleRegenerateClick() {
+            if (!isUserPro()) {
+                openPaywallModal('regenerate');
+                return;
+            }
+            regenerateWorkoutPlan();
+        }
+
+        /**
+         * Modal Ampliado de Aparelho e Execução
+         */
+        function openMachineDetailModal(exIndex) {
+            const activeWorkout = appState.workoutPlan[appState.activeDayIndex];
+            if (!activeWorkout || !activeWorkout.exercises[exIndex]) return;
+
+            const ex = activeWorkout.exercises[exIndex];
+            const machine = MACHINE_LIBRARY[ex.machineType] || MACHINE_LIBRARY.dumbbells_rack;
+
+            document.getElementById('modalMachineTag').innerHTML = `<i class="ph-fill ph-barbell"></i> Aparelho: ${machine.label}`;
+            document.getElementById('modalMuscleTag').textContent = ex.muscle;
+            document.getElementById('modalExerciseName').textContent = ex.name;
+            document.getElementById('modalMachineSvgStage').innerHTML = machine.svg;
+            document.getElementById('modalMachineSetup').textContent = machine.setup;
+            document.getElementById('modalMachineTip').textContent = ex.tip;
+
+            const restBtn = document.getElementById('modalStartRestBtn');
+            restBtn.innerHTML = `<i class="ph-bold ph-timer"></i> Iniciar Descanso (${ex.rest}s)`;
+            restBtn.onclick = () => {
+                closeMachineDetailModal();
+                startRestTimer(ex.rest);
+            };
+
+            document.getElementById('machineDetailModal').classList.remove('hidden');
+        }
+
+        function closeMachineDetailModal() {
+            document.getElementById('machineDetailModal').classList.add('hidden');
+        }
+
+        /**
+         * Renderização da Aba de Treino (Com Imagens SVG dos Aparelhos)
+         */
+        function getTodayKey() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function renderWorkoutUI() {
+            if (!appState.profile || !appState.workoutPlan.length) return;
+
+            const p = appState.profile;
+            const pro = isUserPro();
+            document.getElementById('welcomeUserName').textContent = p.name;
+            
+            const goalNames = {
+                glutes: "Foco em Glúteos & Inferiores",
+                hypertrophy: "Hipertrofia & Ganho de Massa",
+                weightloss: "Emagrecimento & Definição",
+                health: "Condicionamento & Saúde"
+            };
+            document.getElementById('welcomeSubtitle').textContent = `${goalNames[p.goal]} • ${p.days}x na semana • Sessões de ~${p.duration} min`;
+            document.getElementById('workoutSplitBadge').textContent = `Plano ${p.days}x Semana`;
+
+            // Abas dos Dias
+            const tabsContainer = document.getElementById('workoutDayTabs');
+            tabsContainer.innerHTML = '';
+
+            appState.workoutPlan.forEach((dayObj, index) => {
+                const isActive = index === appState.activeDayIndex;
+                const isLocked = !pro && index > 0;
+                const btn = document.createElement('button');
+                btn.onclick = () => {
+                    appState.activeDayIndex = index;
+                    saveStateToStorage();
+                    renderWorkoutUI();
+                };
+
+                if (isActive) {
+                    btn.className = isLocked
+                        ? "px-5 py-3 rounded-2xl bg-plum-900 text-white font-display font-bold text-sm shadow-md shrink-0 transition flex items-center gap-2"
+                        : "px-5 py-3 rounded-2xl bg-coral-500 text-white font-display font-bold text-sm shadow-glow shrink-0 transition flex items-center gap-2";
+                } else {
+                    btn.className = "px-5 py-3 rounded-2xl bg-white text-plum-900 border border-coral-100 hover:border-coral-300 font-display font-bold text-sm shrink-0 transition flex items-center gap-2";
+                }
+
+                btn.innerHTML = isLocked
+                    ? `<span>${dayObj.code}</span> <i class="ph-fill ph-lock-key text-amber-400 text-sm"></i>`
+                    : `<span>${dayObj.code}</span> <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 font-extrabold ${isActive ? '!bg-white/20 !text-white' : ''}">${pro ? 'PRO' : 'GRÁTIS'}</span>`;
+                tabsContainer.appendChild(btn);
+            });
+
+            // Exercícios do Dia Ativo
+            const activeWorkout = appState.workoutPlan[appState.activeDayIndex];
+            const isCurrentDayLocked = !pro && appState.activeDayIndex > 0;
+
+            document.getElementById('activeWorkoutTitle').textContent = `${activeWorkout.code} — ${activeWorkout.title}`;
+            document.getElementById('activeWorkoutFocus').textContent = activeWorkout.focus;
+            document.getElementById('activeWorkoutMeta').innerHTML = `<i class="ph-fill ph-clock text-coral-500"></i> ~${p.duration} min`;
+
+            const storageKey = `${getTodayKey()}_${appState.activeDayIndex}`;
+            const checkedIndices = appState.completedExercises[storageKey] || [];
+
+            const listEl = document.getElementById('exerciseList');
+            const paywallOverlay = document.getElementById('workoutPaywallOverlay');
+            const finishWorkoutContainer = document.getElementById('finishWorkoutContainer');
+
+            listEl.innerHTML = '';
+
+            if (isCurrentDayLocked) {
+                // Preview borrado com miniaturas dos aparelhos dos 2 primeiros exercícios + convite Paywall
+                listEl.classList.add('blur-[4px]', 'pointer-events-none', 'select-none', 'opacity-75');
+                paywallOverlay.classList.remove('hidden');
+                finishWorkoutContainer.classList.add('hidden');
+                document.getElementById('lockedWorkoutHeading').textContent = `Desbloqueie o ${activeWorkout.code} (${activeWorkout.title})`;
+
+                activeWorkout.exercises.slice(0, 2).forEach((ex) => {
+                    const machine = MACHINE_LIBRARY[ex.machineType] || MACHINE_LIBRARY.dumbbells_rack;
+                    const card = document.createElement('div');
+                    card.className = 'rounded-3xl p-4 sm:p-5 border bg-white border-coral-100/80 shadow-soft';
+                    card.innerHTML = `
+                        <div class="flex flex-col sm:flex-row items-start gap-4">
+                            <div class="w-full sm:w-32 h-24 rounded-2xl bg-gradient-to-br from-[#FFF5F7] to-lilac-50 border border-coral-100 p-2 flex items-center justify-center shrink-0">
+                                ${machine.svg}
+                            </div>
+                            <div class="flex-1">
+                                <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-lg bg-coral-50 text-coral-600">Aparelho: ${machine.label}</span>
+                                <h4 class="font-display font-bold text-base text-plum-900 mt-1.5">${ex.name}</h4>
+                                <div class="flex gap-3 mt-2 text-xs font-bold text-plum-800">
+                                    <span class="px-3 py-1 rounded-xl bg-[#FDF8F9]">${ex.sets} séries</span>
+                                    <span class="px-3 py-1 rounded-xl bg-[#FDF8F9]">${ex.reps} reps</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    listEl.appendChild(card);
+                });
+                updateTodayProgressBar(0, activeWorkout.exercises.length);
+                return;
+            }
+
+            // Treino liberado (Treino A no Free, ou todos no PRO)
+            listEl.classList.remove('blur-[4px]', 'pointer-events-none', 'select-none', 'opacity-75');
+            paywallOverlay.classList.add('hidden');
+            finishWorkoutContainer.classList.remove('hidden');
+
+            activeWorkout.exercises.forEach((ex, idx) => {
+                const isDone = checkedIndices.includes(idx);
+                const machine = MACHINE_LIBRARY[ex.machineType] || MACHINE_LIBRARY.dumbbells_rack;
+
+                const card = document.createElement('div');
+                card.className = `rounded-3xl p-4 sm:p-5 border transition-all ${
+                    isDone 
+                    ? 'bg-emerald-50/50 border-emerald-200' 
+                    : 'bg-white border-coral-100/80 shadow-soft'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-start gap-4">
+                        <!-- Miniatura Visual Clicável do Aparelho -->
+                        <button type="button" onclick="openMachineDetailModal(${idx})" class="group relative w-full sm:w-36 h-28 sm:h-32 rounded-2xl bg-gradient-to-br from-[#FFF5F7] via-[#FDF8F9] to-lilac-50/80 border border-coral-100 hover:border-coral-400 p-2.5 flex flex-col items-center justify-center shrink-0 transition overflow-hidden" title="Ampliar aparelho e ajuste">
+                            <div class="w-full h-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                                ${machine.svg}
+                            </div>
+                            <span class="absolute bottom-1.5 right-1.5 px-2 py-0.5 rounded-lg bg-white/95 border border-coral-100 text-[10px] font-extrabold text-plum-900 shadow-sm flex items-center gap-1 group-hover:bg-coral-500 group-hover:text-white transition">
+                                <i class="ph-bold ph-magnifying-glass-plus"></i> Ver aparelho
+                            </span>
+                        </button>
+                        
+                        <!-- Conteúdo do Exercício -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-lg bg-coral-50 text-coral-600 border border-coral-100 flex items-center gap-1">
+                                        <i class="ph-fill ph-barbell"></i> Aparelho: ${machine.label}
+                                    </span>
+                                    <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-lg bg-lilac-50 text-lilac-600">
+                                        ${ex.muscle}
+                                    </span>
+                                </div>
+
+                                <!-- Checkbox Concluir Exercício -->
+                                <button onclick="toggleExerciseCheck(${idx})" class="w-8 h-8 rounded-xl border-2 flex items-center justify-center shrink-0 transition ${
+                                    isDone 
+                                    ? 'bg-emerald-500 border-emerald-500 text-white' 
+                                    : 'border-coral-300 bg-[#FDF8F9] text-transparent hover:border-coral-500'
+                                }" aria-label="Marcar exercício como concluído">
+                                    <i class="ph-bold ph-check text-base"></i>
+                                </button>
+                            </div>
+                            
+                            <h4 class="font-display font-bold text-base sm:text-lg text-plum-900 mt-2 ${isDone ? 'line-through opacity-60' : ''}">
+                                ${ex.name}
+                            </h4>
+                            
+                            <div class="flex flex-wrap items-center gap-2.5 mt-2.5 text-xs font-bold text-plum-800">
+                                <span class="px-3 py-1.5 rounded-xl bg-[#FDF8F9] border border-coral-100">
+                                    <i class="ph-fill ph-repeat text-coral-500 mr-1"></i> ${ex.sets} séries
+                                </span>
+                                <span class="px-3 py-1.5 rounded-xl bg-[#FDF8F9] border border-coral-100">
+                                    <i class="ph-fill ph-barbell text-coral-500 mr-1"></i> ${ex.reps} reps
+                                </span>
+                                <button onclick="startRestTimer(${ex.rest})" class="px-3 py-1.5 rounded-xl bg-coral-50 hover:bg-coral-100 text-coral-600 transition flex items-center gap-1">
+                                    <i class="ph-bold ph-timer"></i> Descanso ${ex.rest}s
+                                </button>
+                            </div>
+
+                            <p class="text-xs text-plum-800/75 mt-3 bg-[#FDF8F9] p-3 rounded-2xl border border-coral-100/60 leading-relaxed">
+                                <strong class="text-plum-900">Execução:</strong> ${ex.tip}
+                            </p>
+                        </div>
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
+
+            updateTodayProgressBar(checkedIndices.length, activeWorkout.exercises.length);
+        }
+
+        function toggleExerciseCheck(exIndex) {
+            const storageKey = `${getTodayKey()}_${appState.activeDayIndex}`;
+            if (!appState.completedExercises[storageKey]) {
+                appState.completedExercises[storageKey] = [];
+            }
+            const arr = appState.completedExercises[storageKey];
+            const pos = arr.indexOf(exIndex);
+            if (pos > -1) {
+                arr.splice(pos, 1);
+            } else {
+                arr.push(exIndex);
+                playSoftChime(520, 0.08);
+            }
+            saveStateToStorage();
+            renderWorkoutUI();
+        }
+
+        function updateTodayProgressBar(doneCount, totalCount) {
+            const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+            document.getElementById('todayProgressPercent').textContent = `${pct}%`;
+            document.getElementById('todayProgressBar').style.width = `${pct}%`;
+            document.getElementById('todayExercisesCount').textContent = `${doneCount} de ${totalCount} exercícios`;
+
+            const finishShortcut = document.getElementById('btnFinishWorkout');
+            if (pct === 100) {
+                finishShortcut.classList.remove('hidden');
+            } else {
+                finishShortcut.classList.add('hidden');
+            }
+        }
+
+        function finishTodayWorkout() {
+            if (!appState.workoutPlan.length) return;
+            const activeWorkout = appState.workoutPlan[appState.activeDayIndex];
+            const now = new Date();
+            const dateFormatted = now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+            const timeFormatted = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            appState.history.unshift({
+                id: Date.now(),
+                code: activeWorkout.code,
+                title: activeWorkout.title,
+                date: `${dateFormatted} às ${timeFormatted}`,
+                duration: appState.profile.duration
+            });
+
+            appState.activeDayIndex = (appState.activeDayIndex + 1) % appState.workoutPlan.length;
+
+            saveStateToStorage();
+            renderWorkoutUI();
+            renderHistoryUI();
+            playSoftChime(660, 0.2);
+            showToast(`Parabéns! ${activeWorkout.code} registrado no seu histórico! 🎉`, "success");
+        }
+
+        /**
+         * ============================================================================
+         * CRONÔMETRO DE DESCANSO + ÁUDIO SUAVE (WEB AUDIO API)
+         * ============================================================================
+         */
+        function playSoftChime(freq = 587.33, duration = 0.25) {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                gain.gain.setValueAtTime(0.12, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        function formatSeconds(sec) {
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function updateTimerDisplay() {
+            document.getElementById('timerDisplay').textContent = formatSeconds(timerSeconds);
+            const toggleBtn = document.getElementById('timerToggleBtn');
+            const iconBox = document.getElementById('timerIconBox');
+
+            if (timerRunning) {
+                toggleBtn.innerHTML = `<i class="ph-fill ph-pause"></i> Pausar`;
+                toggleBtn.classList.add('bg-coral-500');
+                toggleBtn.classList.remove('bg-plum-900');
+                iconBox.classList.add('bg-coral-500', 'text-white');
+                iconBox.classList.remove('bg-coral-50', 'text-coral-600');
+            } else {
+                toggleBtn.innerHTML = `<i class="ph-fill ph-play"></i> Iniciar`;
+                toggleBtn.classList.remove('bg-coral-500');
+                toggleBtn.classList.add('bg-plum-900');
+                iconBox.classList.remove('bg-coral-500', 'text-white');
+                iconBox.classList.add('bg-coral-50', 'text-coral-600');
+            }
+        }
+
+        function startRestTimer(seconds) {
+            clearInterval(timerInterval);
+            timerSeconds = seconds;
+            timerRunning = true;
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                if (timerSeconds > 0) {
+                    timerSeconds--;
+                    updateTimerDisplay();
+                } else {
+                    clearInterval(timerInterval);
+                    timerRunning = false;
+                    updateTimerDisplay();
+                    playSoftChime(587.33, 0.2);
+                    setTimeout(() => playSoftChime(880, 0.35), 220);
+                    showToast("Tempo de descanso finalizado! Bora para a próxima série 💪", "info");
+                }
+            }, 1000);
+        }
+
+        function toggleRestTimer() {
+            if (timerRunning) {
+                clearInterval(timerInterval);
+                timerRunning = false;
+                updateTimerDisplay();
+            } else {
+                if (timerSeconds <= 0) timerSeconds = 60;
+                startRestTimer(timerSeconds);
+            }
+        }
+
+        function resetRestTimer() {
+            clearInterval(timerInterval);
+            timerRunning = false;
+            timerSeconds = 60;
+            updateTimerDisplay();
+        }
+
+        /**
+         * ============================================================================
+         * SISTEMA DE ALERTAS DIÁRIOS PROGRAMÁVEIS & CALENDÁRIO (.ICS)
+         * ============================================================================
+         */
+        function renderAlertSettingsUI() {
+            const a = appState.alerts;
+            document.getElementById('alertMasterToggle').checked = a.enabled;
+            document.getElementById('alertTimeInput').value = a.time;
+            document.getElementById('alertCustomMsg').value = a.message;
+
+            document.querySelectorAll('.day-pill').forEach(btn => {
+                const dayNum = parseInt(btn.dataset.day, 10);
+                if (a.days.includes(dayNum)) {
+                    btn.classList.add('bg-coral-500', 'border-coral-500', 'text-white', 'shadow-sm');
+                    btn.classList.remove('bg-[#FDF8F9]', 'border-coral-100', 'text-plum-900');
+                } else {
+                    btn.classList.remove('bg-coral-500', 'border-coral-500', 'text-white', 'shadow-sm');
+                    btn.classList.add('bg-[#FDF8F9]', 'border-coral-100', 'text-plum-900');
+                }
+            });
+
+            const dot = document.getElementById('mobileAlertDot');
+            if (a.enabled && a.days.length > 0) dot.classList.remove('hidden');
+            else dot.classList.add('hidden');
+        }
+
+        function toggleAlertDay(dayNum) {
+            const idx = appState.alerts.days.indexOf(dayNum);
+            if (idx > -1) {
+                appState.alerts.days.splice(idx, 1);
+            } else {
+                if (!isUserPro() && appState.alerts.days.length >= 1) {
+                    openPaywallModal('alerts');
+                    return;
+                }
+                appState.alerts.days.push(dayNum);
+            }
+            saveStateToStorage();
+            renderAlertSettingsUI();
+        }
+
+        function syncAlertDaysWithProfile(silent = false) {
+            if (!isUserPro() && !silent) {
+                openPaywallModal('alerts');
+                return;
+            }
+            const daysCount = appState.profile ? appState.profile.days : 4;
+            const presets = {
+                2: [1, 4],
+                3: [1, 3, 5],
+                4: [1, 2, 4, 5],
+                5: [1, 2, 3, 4, 5],
+                6: [1, 2, 3, 4, 5, 6]
+            };
+            const suggested = presets[daysCount] || [1, 2, 4, 5];
+            appState.alerts.days = isUserPro() ? suggested : [suggested[0]];
+            saveStateToStorage();
+            renderAlertSettingsUI();
+            if (!silent) showToast(`Dias ajustados para ${daysCount}x na semana!`, "success");
+        }
+
+        function handleExportCalendarClick() {
+            if (!isUserPro()) {
+                openPaywallModal('calendar');
+                return;
+            }
+            exportCalendarICS();
+        }
+
+        function setQuickAlertMsg(msg) {
+            document.getElementById('alertCustomMsg').value = msg;
+            saveAlertSettings();
+        }
+
+        function saveAlertSettings() {
+            appState.alerts.enabled = document.getElementById('alertMasterToggle').checked;
+            appState.alerts.time = document.getElementById('alertTimeInput').value || "18:00";
+            appState.alerts.message = document.getElementById('alertCustomMsg').value.trim() || "Hora do seu treino!";
+            saveStateToStorage();
+            renderAlertSettingsUI();
+        }
+
+        function requestBrowserNotificationPermission() {
+            if (!("Notification" in window)) {
+                showToast("Seu navegador não suporta notificações nativas, mas o alerta visual/sonoro no app funcionará!", "info");
+                return;
+            }
+
+            Notification.requestPermission().then(permission => {
+                updateNotificationStatusUI();
+                if (permission === "granted") {
+                    showToast("Notificações ativadas com sucesso! 🔔", "success");
+                } else {
+                    showToast("Permissão negada no navegador. Usaremos os alertas visuais dentro do aplicativo.", "info");
+                }
+            });
+        }
+
+        function updateNotificationStatusUI() {
+            const statusText = document.getElementById('notifStatusText');
+            if (!("Notification" in window)) {
+                statusText.textContent = "Alerta Interno Ativo";
+                return;
+            }
+            if (Notification.permission === "granted") {
+                statusText.textContent = "Notificações Ativadas ✓";
+            } else if (Notification.permission === "denied") {
+                statusText.textContent = "Bloqueado no Navegador";
+            } else {
+                statusText.textContent = "Permitir Notificações";
+            }
+        }
+
+        function setupAlertCheckerLoop() {
+            setInterval(() => {
+                if (!appState.alerts.enabled) return;
+
+                const now = new Date();
+                const currentDay = now.getDay();
+                if (!appState.alerts.days.includes(currentDay)) return;
+
+                const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                const triggerKey = `${getTodayKey()}_${currentHHMM}`;
+
+                if (currentHHMM === appState.alerts.time && appState.alerts.lastTriggeredDateKey !== triggerKey) {
+                    appState.alerts.lastTriggeredDateKey = triggerKey;
+                    saveStateToStorage();
+                    fireWorkoutAlarm();
+                }
+            }, 15000);
+        }
+
+        function triggerTestAlert() {
+            fireWorkoutAlarm(true);
+        }
+
+        function fireWorkoutAlarm(isTest = false) {
+            const userName = appState.profile ? appState.profile.name : "Musa";
+            const title = isTest ? `Teste de Alerta — Bora treinar, ${userName}!` : `Hora do Treino, ${userName}!`;
+            const body = appState.alerts.message;
+
+            playSoftChime(523.25, 0.2);
+            setTimeout(() => playSoftChime(659.25, 0.2), 180);
+            setTimeout(() => playSoftChime(783.99, 0.4), 360);
+
+            document.getElementById('alarmModalTitle').textContent = title;
+            document.getElementById('alarmModalDesc').textContent = body;
+            document.getElementById('alarmModal').classList.remove('hidden');
+
+            if ("Notification" in window && Notification.permission === "granted") {
+                try {
+                    new Notification(title, {
+                        body: body,
+                        icon: "https://cdn-icons-png.flaticon.com/512/2964/2964514.png"
+                    });
+                } catch (e) {}
+            }
+        }
+
+        function closeAlarmModal() {
+            document.getElementById('alarmModal').classList.add('hidden');
+        }
+
+        function dismissAlarmAndGoToWorkout() {
+            closeAlarmModal();
+            switchTab('workout');
+        }
+
+        function exportCalendarICS() {
+            const time = appState.alerts.time || "18:00";
+            const [hh, mm] = time.split(':');
+            const dayMap = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+            const byDay = appState.alerts.days.length > 0 
+                ? appState.alerts.days.map(d => dayMap[d]).join(',') 
+                : "MO,WE,FR";
+
+            const now = new Date();
+            const dtStart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}T${hh}${mm}00`;
+
+            const icsContent = [
+                "BEGIN:VCALENDAR",
+                "VERSION:2.0",
+                "PRODID:-//AuraFit//Treino Feminino//PT-BR",
+                "BEGIN:VEVENT",
+                `DTSTART:${dtStart}`,
+                `RRULE:FREQ=WEEKLY;BYDAY=${byDay}`,
+                "SUMMARY:Treino AuraFit 💪✨",
+                `DESCRIPTION:${appState.alerts.message}`,
+                "BEGIN:VALARM",
+                "TRIGGER:-PT10M",
+                "ACTION:DISPLAY",
+                "DESCRIPTION:Lembrete de Treino AuraFit",
+                "END:VALARM",
+                "END:VEVENT",
+                "END:VCALENDAR"
+            ].join("\r\n");
+
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Lembrete_Treino_AuraFit.ics';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast("Arquivo de calendário (.ics) baixado! Abra-o para salvar na agenda do celular.", "success");
+        }
+
+        /**
+         * ============================================================================
+         * MONETIZAÇÃO: PAYWALL MODAL & CHECKOUT MERCADO PAGO (MENSAL / VITALÍCIO)
+         * ============================================================================
+         */
+        function openPaywallModal(source = 'general') {
+            const titles = {
+                locked_workout: "Desbloqueie sua ficha completa (Treinos B a F)",
+                regenerate: "Troque exercícios ilimitadamente com o PRO",
+                alerts: "Programe alertas em todos os seus dias de treino",
+                calendar: "Sincronize seus treinos na agenda do celular",
+                banner: "Evolua sem limites com o AuraFit PRO",
+                profile: "Escolha o plano ideal para sua transformação",
+                top_cta: "Seja AuraFit PRO e conquiste seus objetivos"
+            };
+
+            document.getElementById('paywallTitle').textContent = titles[source] || titles.top_cta;
+            selectCheckoutPlan(checkoutState.selectedPlan);
+            document.getElementById('paywallModal').classList.remove('hidden');
+        }
+
+        function closePaywallModal() {
+            document.getElementById('paywallModal').classList.add('hidden');
+        }
+
+        function selectCheckoutPlan(planType) {
+            checkoutState.selectedPlan = planType;
+
+            const cardMonthly = document.getElementById('planCard-monthly');
+            const cardLifetime = document.getElementById('planCard-lifetime');
+            const radioMonthly = document.getElementById('radio-monthly');
+            const radioLifetime = document.getElementById('radio-lifetime');
+
+            if (planType === 'monthly') {
+                cardMonthly.className = "cursor-pointer rounded-2xl p-4 sm:p-5 border-2 border-coral-500 bg-coral-50/40 transition relative shadow-sm";
+                radioMonthly.className = "w-5 h-5 rounded-full border-2 border-coral-500 bg-coral-500 text-white flex items-center justify-center";
+                radioMonthly.innerHTML = `<i class="ph-bold ph-check text-[10px]"></i>`;
+
+                cardLifetime.className = "cursor-pointer rounded-2xl p-4 sm:p-5 border-2 border-coral-100 bg-white hover:border-coral-300 transition relative";
+                radioLifetime.className = "w-5 h-5 rounded-full border-2 border-coral-300 flex items-center justify-center";
+                radioLifetime.innerHTML = "";
+            } else {
+                cardLifetime.className = "cursor-pointer rounded-2xl p-4 sm:p-5 border-2 border-coral-500 bg-coral-50/40 transition relative shadow-sm";
+                radioLifetime.className = "w-5 h-5 rounded-full border-2 border-coral-500 bg-coral-500 text-white flex items-center justify-center";
+                radioLifetime.innerHTML = `<i class="ph-bold ph-check text-[10px]"></i>`;
+
+                cardMonthly.className = "cursor-pointer rounded-2xl p-4 sm:p-5 border-2 border-coral-100 bg-white hover:border-coral-300 transition relative";
+                radioMonthly.className = "w-5 h-5 rounded-full border-2 border-coral-300 flex items-center justify-center";
+                radioMonthly.innerHTML = "";
+            }
+
+            updateCheckoutLinksUI();
+        }
+
+        function updateCheckoutLinksUI() {
+            const planInfo = PAYMENT_LINKS[checkoutState.selectedPlan];
+            const checkoutAnchor = document.getElementById('mercadoPagoCheckoutLink');
+            const btnText = document.getElementById('checkoutSubmitBtnText');
+            const activateText = document.getElementById('activateAfterPayText');
+
+            checkoutAnchor.href = planInfo.url;
+
+            if (checkoutState.selectedPlan === 'monthly') {
+                btnText.textContent = `Pagar no Mercado Pago — Mensal ${planInfo.priceLabel}`;
+                activateText.textContent = `Já paguei! Liberar Plano Mensal Agora`;
+            } else {
+                btnText.textContent = `Pagar no Mercado Pago — Vitalício ${planInfo.priceLabel}`;
+                activateText.textContent = `Já paguei! Liberar Acesso Vitalício Agora`;
+            }
+        }
+
+        function copyPaymentLink() {
+            const url = PAYMENT_LINKS[checkoutState.selectedPlan].url;
+            const tempInput = document.createElement('input');
+            tempInput.value = url;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            tempInput.setSelectionRange(0, 99999);
+            try {
+                document.execCommand('copy');
+                showToast(`Link de pagamento (${url}) copiado!`, "success");
+            } catch (e) {
+                showToast(`Link: ${url}`, "info");
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        function handleMercadoPagoRedirect() {
+            showToast("Abrindo checkout seguro do Mercado Pago em nova aba... Após concluir, clique em 'Já paguei!' para liberar seu acesso.", "info");
+        }
+
+        function confirmMercadoPagoActivation() {
+            appState.subscription = {
+                tier: checkoutState.selectedPlan,
+                activatedAt: new Date().toISOString(),
+                paymentProvider: 'mercadopago',
+                paymentUrl: PAYMENT_LINKS[checkoutState.selectedPlan].url
+            };
+
+            if (appState.profile) {
+                syncAlertDaysWithProfile(true);
+            }
+
+            saveStateToStorage();
+            updateSubscriptionUI();
+            renderWorkoutUI();
+            renderAlertSettingsUI();
+            closePaywallModal();
+
+            playSoftChime(523.25, 0.15);
+            setTimeout(() => playSoftChime(659.25, 0.15), 140);
+            setTimeout(() => playSoftChime(783.99, 0.35), 280);
+
+            const label = checkoutState.selectedPlan === 'lifetime' ? 'AuraFit Vitalício' : 'AuraFit PRO Mensal';
+            showToast(`Parabéns! Bem-vinda ao ${label}! Todos os treinos e recursos foram liberados 👑`, "success");
+        }
+
+        function resetSubscriptionToFree() {
+            appState.subscription = {
+                tier: 'free',
+                activatedAt: null
+            };
+            appState.activeDayIndex = 0;
+            enforceFreeTierLimits();
+            saveStateToStorage();
+            updateSubscriptionUI();
+            renderWorkoutUI();
+            renderAlertSettingsUI();
+            showToast("Plano redefinido para Gratuito (modo de teste).", "info");
+        }
+
+        /**
+         * ============================================================================
+         * SAÚDE, CÁLCULOS DE IMC / ÁGUA / CALORIAS E HISTÓRICO
+         * ============================================================================
+         */
+        function updateHealthMetricsUI() {
+            const p = appState.profile;
+            if (!p) return;
+
+            const heightM = p.height / 100;
+            const bmi = p.weight / (heightM * heightM);
+            document.getElementById('statBmiValue').textContent = bmi.toFixed(1).replace('.', ',');
+
+            const bmiLabel = document.getElementById('statBmiLabel');
+            if (bmi < 18.5) {
+                bmiLabel.textContent = "Abaixo do peso";
+                bmiLabel.className = "inline-block mt-2 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold";
+            } else if (bmi < 25) {
+                bmiLabel.textContent = "Peso saudável";
+                bmiLabel.className = "inline-block mt-2 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold";
+            } else if (bmi < 30) {
+                bmiLabel.textContent = "Sobrepeso leve";
+                bmiLabel.className = "inline-block mt-2 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold";
+            } else {
+                bmiLabel.textContent = "Atenção nutricional";
+                bmiLabel.className = "inline-block mt-2 px-2.5 py-0.5 rounded-full bg-coral-50 text-coral-700 text-xs font-bold";
+            }
+
+            const waterLiters = ((p.weight * 35) + 350) / 1000;
+            document.getElementById('statWaterValue').textContent = `${waterLiters.toFixed(1).replace('.', ',')} L`;
+
+            const bmr = (10 * p.weight) + (6.25 * p.height) - (5 * p.age) - 161;
+            const actFactor = p.activity === 'sedentary' ? 1.375 : (p.activity === 'moderate' ? 1.55 : 1.725);
+            let tdee = bmr * actFactor;
+
+            if (p.goal === 'weightloss') tdee -= 350;
+            else if (p.goal === 'hypertrophy' || p.goal === 'glutes') tdee += 200;
+
+            document.getElementById('statCaloriesValue').textContent = `${Math.round(tdee)} kcal`;
+        }
+
+        function renderHistoryUI() {
+            const listEl = document.getElementById('workoutHistoryList');
+            document.getElementById('totalWorkoutsCompleted').textContent = `${appState.history.length} treino${appState.history.length === 1 ? '' : 's'}`;
+
+            if (!appState.history.length) {
+                listEl.innerHTML = `
+                    <div class="text-center py-8 px-4 rounded-2xl bg-[#FDF8F9] border border-dashed border-coral-200">
+                        <i class="ph-duotone ph-sneaker-move text-4xl text-coral-400 mb-2"></i>
+                        <p class="text-sm font-semibold text-plum-900">Nenhum treino registrado ainda</p>
+                        <p class="text-xs text-plum-800/60 mt-1">Conclua sua primeira sessão na aba "Meu Treino" para vê-la aqui!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = appState.history.map(item => `
+                <div class="flex items-center justify-between p-4 rounded-2xl bg-[#FDF8F9] border border-coral-100">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0">
+                            <i class="ph-fill ph-check-circle text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm text-plum-900">${item.code} — ${item.title}</div>
+                            <div class="text-xs text-plum-800/60 mt-0.5">${item.date}</div>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold px-3 py-1 rounded-xl bg-white border border-coral-100 text-plum-800">
+                        ${item.duration} min
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        /**
+         * Sistema de Notificação Toast
+         */
+        function showToast(message, type = "info") {
+            const container = document.getElementById('inAppToastContainer');
+            const toast = document.createElement('div');
+            
+            const colors = type === "success" 
+                ? "bg-plum-900 text-white border-emerald-400/40" 
+                : "bg-white text-plum-900 border-coral-200";
+            const icon = type === "success" 
+                ? `<i class="ph-fill ph-check-circle text-emerald-400 text-xl shrink-0"></i>` 
+                : `<i class="ph-fill ph-sparkle text-coral-500 text-xl shrink-0"></i>`;
+
+            toast.className = `pointer-events-auto p-4 rounded-2xl shadow-xl border ${colors} flex items-center gap-3 text-sm font-semibold transition-all duration-300 transform translate-y-0`;
+            toast.innerHTML = `${icon}<span class="flex-1">${message}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
